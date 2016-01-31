@@ -1,0 +1,42 @@
+{
+  "name": "wp-encrypt",
+  "version": "0.5.0",
+  "description": "Generate and manage SSL certificates for your WordPress sites for free with this Let's Encrypt client.",
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "lets encrypt",
+    "ssl",
+    "https",
+    "free ssl"
+  ],
+  "author": {
+    "name": "Felix Arntz",
+    "email": "felix-arntz@leaves-and-love.net",
+    "url": "http://leaves-and-love.net"
+  },
+  "homepage": "https://wordpress.org/plugins/wp-encrypt/",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/felixarntz/wp-encrypt.git"
+  },
+  "bugs": {
+    "url" : "https://github.com/felixarntz/wp-encrypt/issues"
+  },
+  "license": {
+    "type": "GPL-3.0",
+    "name": "GNU General Public License v3",
+    "url": "http://www.gnu.org/licenses/gpl-3.0.html"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-clean": "~0.6.0",
+    "grunt-contrib-jshint": "~0.11.0",
+    "grunt-contrib-uglify": "~0.7.0",
+    "grunt-banner": "~0.3.1",
+    "grunt-text-replace": "~0.4.0"
+  }
+}

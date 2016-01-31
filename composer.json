@@ -1,0 +1,43 @@
+{
+  "name": "felixarntz/wp-encrypt",
+  "description": "Generate and manage SSL certificates for your WordPress sites for free with this Let's Encrypt client.",
+  "version": "0.5.0",
+  "license": "GPL-3.0",
+  "type": "wordpress-plugin",
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "lets encrypt",
+    "ssl",
+    "https",
+    "free ssl"
+  ],
+  "homepage": "https://wordpress.org/plugins/wp-encrypt/",
+  "authors": [
+    {
+      "name": "Felix Arntz",
+      "email": "felix-arntz@leaves-and-love.net",
+      "homepage": "http://leaves-and-love.net",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "email": "felix-arntz@leaves-and-love.net",
+    "issues": "https://github.com/felixarntz/wp-encrypt/issues"
+  },
+  "config": {
+    "preferred-install": "dist"
+  },
+  "autoload": {
+    "psr-4": {
+      "WPENC\\": "inc/WPENC/"
+    },
+    "files": [
+      "inc/functions.php"
+    ]
+  },
+  "require": {
+    "composer/installers": "~1.0",
+    "felixarntz/leavesandlove-wp-plugin-util": "1.7.0"
+  }
+}
