@@ -199,6 +199,34 @@ if ( ! class_exists( 'WPENC\Client' ) ) {
 			return true;
 		}
 
+		public function unsign_domain() {
+			$domain_path = $this->certificates_dir_path . '/' . $this->domain;
+			if ( ! file_exists( $domain_path . '/cert.pem' ) ) {
+				return new WP_Error( 'cert_not_exist', sprintf( __( 'The certificate <code>%s</code> does not exist.', 'wp-encrypt' ), $domain_path . '/cert.pem' ) );
+			}
+
+			$pem = file_get_contents( $domain_path . '/cert.pem' );
+
+			$begin = 'CERTIFICATE-----';
+			$end = '-----END';
+
+			$pem = substr( $pem, strpos( $pem, $begin ) + strlen( $begin ) );
+			$pem = substr( $pem, 0, strpos( $pem, $end ) );
+
+			$pem = Util::base64_url_encode( base64_decode( $pem ) );
+
+			$result = $this->revoke_cert( $pem );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			if ( 200 !== $this->get_last_code() ) {
+				return new WP_Error( 'revoke_cert_invalid_response_code', __( 'Invalid response code for revoke certificate request.', 'wp-encrypt' ) );
+			}
+
+			return true;
+		}
+
 		public function new_authz() {
 			return $this->signed_request( 'acme/new-authz', array(
 				'resource'		=> 'new-authz',
@@ -227,6 +255,12 @@ if ( ! class_exists( 'WPENC\Client' ) ) {
 			return $this->signed_request( 'acme/new-cert', array(
 				'resource'		=> 'new-cert',
 				'csr'			=> $csr,
+			) );
+		}
+
+		public function revoke_cert( $cert ) {
+			return $this->signed_request( 'acme/revoke-cert', array(
+				'certificate'	=> $cert,
 			) );
 		}
 

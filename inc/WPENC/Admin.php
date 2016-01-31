@@ -61,10 +61,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 			add_action( 'admin_action_wpenc_register_account', array( $this, 'action_register_account' ) );
 			add_action( 'admin_action_wpenc_sign_domain', array( $this, 'action_sign_domain' ) );
+			add_action( 'admin_action_wpenc_unsign_domain', array( $this, 'action_unsign_domain' ) );
 
 			add_action( 'wp_ajax_wpenc_update_settings', array( $this, 'ajax_update_settings' ) );
 			add_action( 'wp_ajax_wpenc_register_account', array( $this, 'ajax_register_account' ) );
 			add_action( 'wp_ajax_wpenc_sign_domain', array( $this, 'ajax_sign_domain' ) );
+			add_action( 'wp_ajax_wpenc_unsign_domain', array( $this, 'ajax_unsign_domain' ) );
 
 			add_filter( 'pre_update_option_wp_encrypt_settings', array( $this, 'check_valid' ) );
 		}
@@ -158,6 +160,23 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			exit;
 		}
 
+		public function action_unsign_domain() {
+			$response = $this->check_action_request();
+			if ( is_wp_error( $response ) ) {
+				add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+			} else {
+				$response = $this->unsign_domain();
+				if ( is_wp_error( $response ) ) {
+					add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+				} else {
+					add_settings_error( 'wp_encrypt_settings', 'account_registered', __( 'Domain unsigned.', 'wp-encrypt' ), 'updated' );
+				}
+			}
+
+			wp_redirect( remove_query_arg( 'action' ) );
+			exit;
+		}
+
 		public function ajax_update_settings() {
 			$this->check_ajax_request();
 
@@ -198,6 +217,17 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			wp_send_json_success( sprintf( __( 'The domain has been last signed on %s.', 'wp-encrypt' ), $date ) );
 		}
 
+		public function ajax_unsign_domain() {
+			$this->check_ajax_request();
+
+			$response = $this->unsign_domain();
+			if ( is_wp_error( $response ) ) {
+				wp_send_json_error( $response->get_error_message() );
+			}
+
+			wp_send_json_success( __( 'The domain has been unsigned.', 'wp-encrypt' ) );
+		}
+
 		public function check_valid( $options ) {
 			$required_fields = array( 'country_code', 'country_name', 'organization' );
 			$valid = true;
@@ -228,6 +258,15 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$response = $client->sign_domain();
 			if ( ! is_wp_error( $response ) ) {
 				Util::set_registration_info( get_current_blog_id(), current_time( 'mysql' ) );
+			}
+			return $response;
+		}
+
+		private function unsign_domain() {
+			$client = new Client( Util::get_domain() );
+			$response = $client->unsign_domain();
+			if ( ! is_wp_error( $response ) ) {
+				Util::set_registration_info( get_current_blog_id(), '' );
 			}
 			return $response;
 		}
