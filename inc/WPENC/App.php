@@ -45,13 +45,15 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		/**
 		 * The run() method.
 		 *
-		 * This will initialize the plugin on the 'after_setup_theme' action.
+		 * This will initialize the plugin.
 		 *
 		 * @internal
 		 * @since 0.5.0
 		 */
 		protected function run() {
-			if ( is_admin() ) {
+			if ( is_multisite() ) {
+				//TODO: network admin class
+			} else {
 				Admin::instance()->run();
 			}
 		}

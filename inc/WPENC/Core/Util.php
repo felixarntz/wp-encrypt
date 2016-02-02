@@ -7,8 +7,6 @@
 
 namespace WPENC\Core;
 
-use WP_Error;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	die();
 }
@@ -25,28 +23,21 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			if ( defined( 'WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH' ) && WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH ) {
 				return untrailingslashit( WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH );
 			}
-			return self::detect_base( 'path' ) . '/' . self::get_letsencrypt_dirname() . '/.certs';
+			return dirname( self::detect_base( 'path' ) ) . '/letsencrypt/live';
 		}
 
 		public static function get_letsencrypt_challenges_dir_path() {
 			if ( defined( 'WP_ENCRYPT_SSL_CHALLENGES_DIR_PATH' ) && WP_ENCRYPT_SSL_CHALLENGES_DIR_PATH ) {
 				return untrailingslashit( WP_ENCRYPT_SSL_CHALLENGES_DIR_PATH );
 			}
-			return self::detect_base( 'path' ) . '/' . self::get_letsencrypt_dirname() . '/.well-known/acme-challenge';
+			return self::detect_base( 'path' ) . '/.well-known/acme-challenge';
 		}
 
 		public static function get_letsencrypt_challenges_dir_url() {
 			if ( defined( 'WP_ENCRYPT_SSL_CHALLENGES_DIR_URL' ) && WP_ENCRYPT_SSL_CHALLENGES_DIR_URL ) {
 				return untrailingslashit( WP_ENCRYPT_SSL_CHALLENGES_DIR_URL );
 			}
-			return self::detect_base( 'url' ) . '/' . self::get_letsencrypt_dirname() . '/.well-known/acme-challenge';
-		}
-
-		public static function get_letsencrypt_dirname() {
-			if ( defined( 'WP_ENCRYPT_SSL_DIRNAME' ) && WP_ENCRYPT_SSL_DIRNAME ) {
-				return trim( WP_ENCRYPT_SSL_DIRNAME, '/' );
-			}
-			return 'letsencrypt';
+			return self::detect_base( 'url' ) . '/.well-known/acme-challenge';
 		}
 
 		private static function detect_base( $mode = 'url' ) {
@@ -78,6 +69,23 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 				$data .= str_repeat( '=', $pad );
 			}
 			return base64_decode( strtr( $data, '-_', '+/' ) );
+		}
+
+		public static function get_all_domains( $domain, $addon_domains = array() ) {
+			array_unshift( $addon_domains, $domain );
+
+			$all_domains = array();
+
+			foreach ( $addon_domains as $addon_domain ) {
+				$all_domains[] = $addon_domain;
+				if ( 1 === substr_count( $addon_domain, '.' ) ) {
+					$all_domains[] = 'www.' . $addon_domain;
+				} elseif ( 2 === substr_count( $addon_domain, '.' ) && 'www.' === substr( $addon_domain, 0, 4 ) ) {
+					$all_domains[] = substr( $addon_domain, 4 );
+				}
+			}
+
+			return $all_domains;
 		}
 	}
 }

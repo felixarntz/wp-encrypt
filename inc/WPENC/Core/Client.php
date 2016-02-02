@@ -49,8 +49,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 
 		private $last_response_header = null;
 
-		protected function __construct() {
-		}
+		private function __construct() {}
 
 		public function register() {
 			return $this->signed_request( self::ENDPOINT_REGISTER, array(
@@ -95,25 +94,25 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return $this->request( 'directory', 'GET' );
 		}
 
-		private function signed_request( $endpoint, $data = null ) {
-			$keypair = AccountKeyPair::get();
+		public function signed_request( $endpoint, $data = null ) {
+			$account_keypair = AccountKeyPair::get();
 
-			$private_key = $keypair->read_private();
-			if ( is_wp_error( $private_key ) ) {
-				return $private_key;
+			$account_key_resource = $account_keypair->read_private();
+			if ( is_wp_error( $account_key_resource ) ) {
+				return $account_key_resource;
 			}
 
-			$details = $keypair->get_private_details();
-			if ( is_wp_error( $details ) ) {
-				return $details;
+			$account_key_details = $account_keypair->get_private_details();
+			if ( is_wp_error( $account_key_details ) ) {
+				return $account_key_details;
 			}
 
 			$protected = $header = array(
 				'alg'	=> 'RS256',
 				'jwk'	=> array(
 					'kty'	=> 'RSA',
-					'n'		=> Util::base64_url_encode( $details['rsa']['n'] ),
-					'e'		=> Util::base64_url_encode( $details['rsa']['e'] ),
+					'n'		=> Util::base64_url_encode( $account_key_details['rsa']['n'] ),
+					'e'		=> Util::base64_url_encode( $account_key_details['rsa']['e'] ),
 				),
 			);
 
@@ -133,7 +132,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			$data64 = Util::base64_url_encode( str_replace( '\\/', '/', json_encode( $data ) ) );
 			$protected64 = Util::base64_url_encode( json_encode( $protected ) );
 
-			$sign_status = openssl_sign( $protected64 . '.' . $data64, $signature, $private_key, 'SHA256' );
+			$sign_status = openssl_sign( $protected64 . '.' . $data64, $signature, $account_key_resource, 'SHA256' );
 			if ( false === $status ) {
 				return new WP_Error( 'private_key_cannot_sign', sprintf( __( 'Could not sign request with private key. Original error message: %s', 'wp-encrypt' ), openssl_error_string() ) );
 			}
@@ -148,7 +147,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			) );
 		}
 
-		private function request( $endpoint, $method = 'GET', $data = null ) {
+		public function request( $endpoint, $method = 'GET', $data = null ) {
 			if ( is_array( $data ) ) {
 				$data = json_encode( $data );
 			}
@@ -182,7 +181,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null === $response ? $body : $response;
 		}
 
-		private function get_last_nonce() {
+		public function get_last_nonce() {
 			if ( null !== $this->last_response_header && preg_match( '#Replay\-Nonce: (.+)#i', $this->last_response_header, $matches ) ) {
 				return trim( $matches[1] );
 			}
@@ -190,7 +189,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null;
 		}
 
-		private function get_last_location() {
+		public function get_last_location() {
 			if ( null !== $this->last_response_header && preg_match( '#Location: (.+)#i', $this->last_response_header, $matches ) ) {
 				return trim( $matches[1] );
 			}
@@ -198,7 +197,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null;
 		}
 
-		private function get_last_code() {
+		public function get_last_code() {
 			if ( null !== $this->last_response_code ) {
 				return $this->last_response_code;
 			}
@@ -206,7 +205,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null;
 		}
 
-		private function get_last_links() {
+		public function get_last_links() {
 			if ( null !== $this->last_response_header && preg_match_all( '#Link: <(.+)>;rel="up"#', $this->last_response_header, $matches ) ) {
 				return $matches[1];
 			}

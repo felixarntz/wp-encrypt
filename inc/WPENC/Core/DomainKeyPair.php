@@ -7,8 +7,6 @@
 
 namespace WPENC\Core;
 
-use WP_Error;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	die();
 }

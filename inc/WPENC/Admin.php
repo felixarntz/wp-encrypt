@@ -7,6 +7,7 @@
 
 namespace WPENC;
 
+use WPENC\Core\CertificateManager;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -60,13 +61,13 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			add_action( 'admin_menu', array( $this, 'init_menu' ) );
 
 			add_action( 'admin_action_wpenc_register_account', array( $this, 'action_register_account' ) );
-			add_action( 'admin_action_wpenc_sign_domain', array( $this, 'action_sign_domain' ) );
-			add_action( 'admin_action_wpenc_unsign_domain', array( $this, 'action_unsign_domain' ) );
+			add_action( 'admin_action_wpenc_generate_certificate', array( $this, 'action_generate_certificate' ) );
+			add_action( 'admin_action_wpenc_revoke_certificate', array( $this, 'action_revoke_certificate' ) );
 
 			add_action( 'wp_ajax_wpenc_update_settings', array( $this, 'ajax_update_settings' ) );
 			add_action( 'wp_ajax_wpenc_register_account', array( $this, 'ajax_register_account' ) );
-			add_action( 'wp_ajax_wpenc_sign_domain', array( $this, 'ajax_sign_domain' ) );
-			add_action( 'wp_ajax_wpenc_unsign_domain', array( $this, 'ajax_unsign_domain' ) );
+			add_action( 'wp_ajax_wpenc_generate_certificate', array( $this, 'ajax_generate_certificate' ) );
+			add_action( 'wp_ajax_wpenc_revoke_certificate', array( $this, 'ajax_revoke_certificate' ) );
 
 			add_filter( 'pre_update_option_wp_encrypt_settings', array( $this, 'check_valid' ) );
 		}
@@ -143,12 +144,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			exit;
 		}
 
-		public function action_sign_domain() {
+		public function action_generate_certificate() {
 			$response = $this->check_action_request();
 			if ( is_wp_error( $response ) ) {
 				add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
 			} else {
-				$response = $this->sign_domain();
+				$response = $this->generate_certificate();
 				if ( is_wp_error( $response ) ) {
 					add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
 				} else {
@@ -160,12 +161,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			exit;
 		}
 
-		public function action_unsign_domain() {
+		public function action_revoke_certificate() {
 			$response = $this->check_action_request();
 			if ( is_wp_error( $response ) ) {
 				add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
 			} else {
-				$response = $this->unsign_domain();
+				$response = $this->revoke_certificate();
 				if ( is_wp_error( $response ) ) {
 					add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
 				} else {
@@ -199,28 +200,28 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				wp_send_json_error( $response->get_error_message() );
 			}
 
-			$date = mysql2date( get_option( 'date_format' ), Util::get_account_registered(), true );
+			$date = mysql2date( get_option( 'date_format' ), $this->get_account_registered(), true );
 
 			wp_send_json_success( sprintf( __( 'The account has been registered on %s.', 'wp-encrypt' ), $date ) );
 		}
 
-		public function ajax_sign_domain() {
+		public function ajax_generate_certificate() {
 			$this->check_ajax_request();
 
-			$response = $this->sign_domain();
+			$response = $this->generate_certificate();
 			if ( is_wp_error( $response ) ) {
 				wp_send_json_error( $response->get_error_message() );
 			}
 
-			$date = mysql2date( get_option( 'date_format' ), Util::get_domain_signed(), true );
+			$date = mysql2date( get_option( 'date_format' ), $this->get_certificate_generated(), true );
 
 			wp_send_json_success( sprintf( __( 'The domain has been last signed on %s.', 'wp-encrypt' ), $date ) );
 		}
 
-		public function ajax_unsign_domain() {
+		public function ajax_revoke_certificate() {
 			$this->check_ajax_request();
 
-			$response = $this->unsign_domain();
+			$response = $this->revoke_certificate();
 			if ( is_wp_error( $response ) ) {
 				wp_send_json_error( $response->get_error_message() );
 			}
@@ -242,36 +243,40 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		private function register_account() {
-			$client = new Client( Util::get_domain() );
-			$response = $client->register_account();
+			$manager = CertificateManager::get();
+			$response = $manager->register_account();
 			if ( ! is_wp_error( $response ) ) {
 				Util::set_registration_info( 'account', current_time( 'mysql' ) );
 			}
 			return $response;
 		}
 
-		private function sign_domain() {
-			if ( ! $this->can_sign_domain() ) {
+		private function generate_certificate() {
+			if ( ! $this->can_generate_certificate() ) {
 				return new WP_Error( 'domain_cannot_sign', __( 'Domain cannot be signed. Either the account is not registered yet or the settings are not valid.', 'wp-encrypt' ) );
 			}
-			$client = new Client( Util::get_domain() );
-			$response = $client->sign_domain();
+			$manager = CertificateManager::get();
+			$response = $manager->generate_certificate( Util::get_domain(), array(), array(
+				'ST'	=> Util::get_option( 'country_name' ),
+				'C'		=> Util::get_option( 'country_code' ),
+				'O'		=> Util::get_option( 'organization' ),
+			) );
 			if ( ! is_wp_error( $response ) ) {
 				Util::set_registration_info( get_current_blog_id(), current_time( 'mysql' ) );
 			}
 			return $response;
 		}
 
-		private function unsign_domain() {
-			$client = new Client( Util::get_domain() );
-			$response = $client->unsign_domain();
+		private function revoke_certificate() {
+			$manager = CertificateManager::get();
+			$response = $manager->revoke_certificate( Util::get_domain() );
 			if ( ! is_wp_error( $response ) ) {
 				Util::set_registration_info( get_current_blog_id(), '' );
 			}
 			return $response;
 		}
 
-		private function can_sign_domain() {
+		private function can_generate_certificate() {
 			return $this->get_account_registered() && Util::get_option( 'valid' );
 		}
 
@@ -279,7 +284,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return Util::get_registration_info( 'account' );
 		}
 
-		private function get_domain_signed() {
+		private function get_certificate_generated() {
 			return Util::get_registration_info( get_current_blog_id() );
 		}
 
