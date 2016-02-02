@@ -66,62 +66,10 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			return $options[ $field ];
 		}
 
-		public static function base64_url_encode( $data ) {
-			return str_replace( '=', '', strtr( base64_encode( $data, '+/', '-_' ) ) );
-		}
-
-		public static function base64_url_decode( $data ) {
-			$rest = strlen( $data ) % 4;
-			if ( 0 < $rest ) {
-				$pad = 4 - $rest;
-				$data .= str_repeat( '=', $pad );
-			}
-			return base64_decode( strtr( $data, '-_', '+/' ) );
-		}
-
 		public static function get_domain( $site_id = null ) {
 			$url = get_home_url( $site_id );
 			$url = explode( '/', str_replace( array( 'https://', 'http://' ), '', $url ) );
 			return $url[0];
-		}
-
-		public static function get_letsencrypt_dir_path() {
-			if ( defined( 'WP_ENCRYPT_SSL_DIR_PATH' ) && WP_ENCRYPT_SSL_DIR_PATH ) {
-				return untrailingslashit( WP_ENCRYPT_SSL_DIR_PATH );
-			}
-			return self::detect_base( 'path' ) . '/' . self::get_letsencrypt_dirname();
-		}
-
-		public static function get_letsencrypt_dir_url() {
-			if ( defined( 'WP_ENCRYPT_SSL_DIR_URL' ) && WP_ENCRYPT_SSL_DIR_URL ) {
-				return untrailingslashit( WP_ENCRYPT_SSL_DIR_URL );
-			}
-			return self::detect_base( 'url' ) . '/' . self::get_letsencrypt_dirname();
-		}
-
-		public static function get_letsencrypt_dirname() {
-			if ( defined( 'WP_ENCRYPT_SSL_DIRNAME' ) && WP_ENCRYPT_SSL_DIRNAME ) {
-				return trim( WP_ENCRYPT_SSL_DIRNAME, '/' );
-			}
-			return 'letsencrypt';
-		}
-
-		private static function detect_base( $mode = 'url' ) {
-			$content_parts = explode( '/', str_replace( array( 'https://', 'http://' ), '', rtrim( WP_CONTENT_URL, '/' ) ) );
-			$dirname_up = count( $content_parts ) - 1;
-
-			$base = WP_CONTENT_URL;
-			if ( 'path' === $mode ) {
-				$base = WP_CONTENT_DIR;
-			}
-
-			$base = rtrim( $base, '/' );
-
-			for ( $i = 0; $i < $dirname_up; $i++ ) {
-				$base = dirname( $base );
-			}
-
-			return $base;
 		}
 	}
 }

@@ -59,4 +59,4 @@ You can also contribute to the plugin by translating it by using the "Translate"
 
 == Additional Credit ==
 
-The core of this plugin is a port of the [analogic/lescript](https://github.com/analogic/lescript/blob/master/Lescript.php), a PHP client for Let's Encrypt, with some fixes to work correctly in WordPress.
+The core of this plugin is a rewrite of [analogic/lescript](https://github.com/analogic/lescript/blob/master/Lescript.php), a PHP client for Let's Encrypt. The plugin's implementation includes fixes to work properly in WordPress, plus it provides some enhancements over the original client, like a reusable class hierarchy.
