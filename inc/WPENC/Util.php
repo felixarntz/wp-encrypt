@@ -66,10 +66,42 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			return $options[ $field ];
 		}
 
-		public static function get_domain( $site_id = null ) {
+		public static function get_site_domain( $site_id = null ) {
 			$url = get_home_url( $site_id );
 			$url = explode( '/', str_replace( array( 'https://', 'http://' ), '', $url ) );
 			return $url[0];
+		}
+
+		public static function get_network_domain( $network_id = null ) {
+			if ( null === $network_id ) {
+				$network = get_current_site();
+			} else {
+				$network = wp_get_network( $network_id );
+			}
+
+			return $network->domain;
+		}
+
+		public static function get_network_addon_domains( $network_id = null ) {
+			if ( null === $network_id ) {
+				$network = get_current_site();
+			} else {
+				$network = wp_get_network( $network_id );
+			}
+
+			$addon_domains = array();
+
+			$sites = wp_get_sites( array(
+				'network_id'	=> $network->id,
+			) );
+			foreach ( $sites as $site ) {
+				if ( $site->domain === $network->domain ) {
+					continue;
+				}
+				$addon_domains[] = $site->domain;
+			}
+
+			return $addon_domains;
 		}
 	}
 }

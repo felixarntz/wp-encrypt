@@ -256,7 +256,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				return new WP_Error( 'domain_cannot_sign', __( 'Domain cannot be signed. Either the account is not registered yet or the settings are not valid.', 'wp-encrypt' ) );
 			}
 			$manager = CertificateManager::get();
-			$response = $manager->generate_certificate( Util::get_domain(), array(), array(
+			$response = $manager->generate_certificate( Util::get_site_domain(), array(), array(
 				'ST'	=> Util::get_option( 'country_name' ),
 				'C'		=> Util::get_option( 'country_code' ),
 				'O'		=> Util::get_option( 'organization' ),
@@ -269,7 +269,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 		private function revoke_certificate() {
 			$manager = CertificateManager::get();
-			$response = $manager->revoke_certificate( Util::get_domain() );
+			$response = $manager->revoke_certificate( Util::get_site_domain() );
 			if ( ! is_wp_error( $response ) ) {
 				Util::set_registration_info( get_current_blog_id(), '' );
 			}

@@ -85,7 +85,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 				}
 			}
 
-			return $all_domains;
+			return array_unique( $all_domains );
 		}
 	}
 }
