@@ -38,6 +38,6 @@
   },
   "require": {
     "composer/installers": "~1.0",
-    "felixarntz/leavesandlove-wp-plugin-util": "2.0.0"
+    "felixarntz/leavesandlove-wp-plugin-util": "2.0.1"
   }
 }
