@@ -50,7 +50,7 @@ I preferably take support requests as [issues on Github](https://github.com/feli
 
 If you're a developer and you have some ideas to improve the plugin or to solve a bug, feel free to raise an issue or submit a pull request in the [Github repository for the plugin](https://github.com/felixarntz/wp-encrypt).
 
-You can also contribute to the plugin by translating it by using the "Translate" button on the right hand side of this page.
+You can also contribute to the plugin by translating it. Simply visit [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/wp-encrypt) to get started.
 
 == Changelog ==
 
