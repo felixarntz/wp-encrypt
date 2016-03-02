@@ -127,8 +127,8 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment';
 
 			fclose( $tmp_conf );
 
-			if ( false === @file_put_contents( $this->certificates_dir_path . '/' . $this->domain . '/last.csr', $csr ) ) {
-				return new WP_Error( 'csr_cannot_write', sprintf( __( 'Could not write CSR into file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->certificates_dir_path . '/' . $this->domain . '/last.csr' ) );
+			if ( false === @file_put_contents( $this->path . '/last.csr', $csr ) ) {
+				return new WP_Error( 'csr_cannot_write', sprintf( __( 'Could not write CSR into file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/last.csr' ) );
 			}
 
 			preg_match( '#REQUEST-----(.*)-----END#s', $csr, $matches );

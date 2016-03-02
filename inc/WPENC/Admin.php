@@ -85,7 +85,32 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		public function render_page() {
-			//TODO
+			$base_url = remove_query_arg( 'settings-updated' );
+			?>
+			<div class="wrap">
+				<h1><?php _e( 'WP Encrypt', 'wp-encrypt' ); ?></h1>
+
+				<form method="post" action="options.php">
+					<?php settings_fields( 'wp_encrypt_settings' ); ?>
+
+					<?php do_settings_sections( 'wp_encrypt' ); ?>
+					<?php submit_button(); ?>
+
+					<?php if ( Util::get_option( 'valid' ) ) : ?>
+						<h2><?php _e( 'Let&rsquo;s Encrypt Account', 'wp-encrypt' ); ?></h2>
+						<p class="submit"><a href="<?php echo wp_nonce_url( add_query_arg( 'action', 'wpenc_register_account', 'options.php' ), 'wp_encrypt_action', 'nonce' ); ?>" class="button button-primary"><?php _e( 'Register Account', 'wp-encrypt' ); ?></a></p>
+
+						<?php if ( $this->can_generate_certificate() ) : ?>
+							<h2><?php _e( 'Let&rsquo;s Encrypt Certificate', 'wp-encrypt' ); ?></h2>
+							<p class="submit">
+								<a href="<?php echo wp_nonce_url( add_query_arg( 'action', 'wpenc_generate_certificate', 'options.php' ), 'wp_encrypt_action', 'nonce' ); ?>" class="button button-primary"><?php _e( 'Generate Certificate', 'wp-encrypt' ); ?></a>
+								<a href="<?php echo wp_nonce_url( add_query_arg( 'action', 'wpenc_revoke_certificate', 'options.php' ), 'wp_encrypt_action', 'nonce' ); ?>" class="button button-secondary"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
+							</p>
+						<?php endif; ?>
+					<?php endif; ?>
+				</form>
+			</div>
+			<?php
 		}
 
 		public function render_settings_description() {
@@ -100,7 +125,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				$more_args .= ' maxlength="2"';
 			}
 
-			echo '<input type="text" id="' . $args['id'] . '" name="' . $args['id'] . '" value="' . $value . '"' . $more_args . ' />';
+			echo '<input type="text" id="' . $args['id'] . '" name="wp_encrypt_settings[' . $args['id'] . ']" value="' . $value . '"' . $more_args . ' />';
 			switch ( $args['id'] ) {
 				case 'organization':
 					$description = __( 'The name of the organization behind this site.', 'wp-encrypt' );
@@ -130,51 +155,57 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		public function action_register_account() {
 			$response = $this->check_action_request();
 			if ( is_wp_error( $response ) ) {
-				add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+				add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
 			} else {
 				$response = $this->register_account();
 				if ( is_wp_error( $response ) ) {
-					add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+					add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
 				} else {
-					add_settings_error( 'wp_encrypt_settings', 'account_registered', __( 'Account registered.', 'wp-encrypt' ), 'updated' );
+					add_settings_error( 'wp_encrypt_action', 'account_registered', __( 'Account registered.', 'wp-encrypt' ), 'updated' );
 				}
 			}
 
-			wp_redirect( remove_query_arg( 'action' ) );
+			set_transient( 'settings_errors', get_settings_errors(), 30 );
+
+			wp_redirect( add_query_arg( 'settings-updated', 'true', remove_query_arg( array( 'action', 'nonce' ), wp_get_referer() ) ) );
 			exit;
 		}
 
 		public function action_generate_certificate() {
 			$response = $this->check_action_request();
 			if ( is_wp_error( $response ) ) {
-				add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+				add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
 			} else {
 				$response = $this->generate_certificate();
 				if ( is_wp_error( $response ) ) {
-					add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+					add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
 				} else {
-					add_settings_error( 'wp_encrypt_settings', 'account_registered', __( 'Domain signed.', 'wp-encrypt' ), 'updated' );
+					add_settings_error( 'wp_encrypt_action', 'account_registered', __( 'Domain signed.', 'wp-encrypt' ), 'updated' );
 				}
 			}
 
-			wp_redirect( remove_query_arg( 'action' ) );
+			set_transient( 'settings_errors', get_settings_errors(), 30 );
+
+			wp_redirect( add_query_arg( 'settings-updated', 'true', remove_query_arg( array( 'action', 'nonce' ), wp_get_referer() ) ) );
 			exit;
 		}
 
 		public function action_revoke_certificate() {
 			$response = $this->check_action_request();
 			if ( is_wp_error( $response ) ) {
-				add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+				add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
 			} else {
 				$response = $this->revoke_certificate();
 				if ( is_wp_error( $response ) ) {
-					add_settings_error( 'wp_encrypt_settings', $response->get_error_code(), $response->get_error_message(), 'error' );
+					add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
 				} else {
-					add_settings_error( 'wp_encrypt_settings', 'account_registered', __( 'Domain unsigned.', 'wp-encrypt' ), 'updated' );
+					add_settings_error( 'wp_encrypt_action', 'account_registered', __( 'Domain unsigned.', 'wp-encrypt' ), 'updated' );
 				}
 			}
 
-			wp_redirect( remove_query_arg( 'action' ) );
+			set_transient( 'settings_errors', get_settings_errors(), 30 );
+
+			wp_redirect( add_query_arg( 'settings-updated', 'true', remove_query_arg( array( 'action', 'nonce' ), wp_get_referer() ) ) );
 			exit;
 		}
 
@@ -233,7 +264,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$required_fields = array( 'country_code', 'country_name', 'organization' );
 			$valid = true;
 			foreach ( $required_fields as $required_field ) {
-				if ( ! isset( $options[ $required_field ] ) || empty( $options[ $required_field ] ) ) {
+				if ( ! isset( $options[ $required_field ] ) || empty( $options[ $required_field ] ) ) {
 					$valid = false;
 					break;
 				}
@@ -246,7 +277,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$manager = CertificateManager::get();
 			$response = $manager->register_account();
 			if ( ! is_wp_error( $response ) ) {
-				Util::set_registration_info( 'account', current_time( 'mysql' ) );
+				Util::set_registration_info( 'account', $response );
 			}
 			return $response;
 		}
@@ -262,7 +293,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				'O'		=> Util::get_option( 'organization' ),
 			) );
 			if ( ! is_wp_error( $response ) ) {
-				Util::set_registration_info( get_current_blog_id(), current_time( 'mysql' ) );
+				Util::set_registration_info( get_current_blog_id(), array() );
 			}
 			return $response;
 		}
@@ -271,7 +302,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$manager = CertificateManager::get();
 			$response = $manager->revoke_certificate( Util::get_site_domain() );
 			if ( ! is_wp_error( $response ) ) {
-				Util::set_registration_info( get_current_blog_id(), '' );
+				Util::delete_registration_info( get_current_blog_id() );
 			}
 			return $response;
 		}
