@@ -41,7 +41,24 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 				}
 			}
 
-			return Client::get()->register();
+			$response = Client::get()->register();
+			if ( is_wp_error( $response ) ) {
+				return $response;
+			}
+
+			if ( isset( $response['status'] ) && 200 !== absint( $response['status'] ) ) {
+				$code = 'letsencrypt_error';
+				$message = __( 'Unknown error', 'wp-encrypt' );
+				if ( isset( $response['type'] ) ) {
+					$code = 'letsencrypt_' . str_replace( ':', '_', $response['type'] );
+				}
+				if ( isset( $response['detail'] ) ) {
+					$message = $response['detail'];
+				}
+				return new WP_Error( $code, $message );
+			}
+
+			return $response;
 		}
 
 		public function generate_certificate( $domain, $addon_domains = array(), $dn_args = array() ) {
@@ -54,8 +71,8 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 
 			$all_domains = Util::get_all_domains( $domain, $addon_domains );
 
-			foreach ( $all_domains as $domain ) {
-				$status = Challenge::validate( $domain, $account_key_details );
+			foreach ( $all_domains as $_domain ) {
+				$status = Challenge::validate( $_domain, $account_key_details );
 				if ( is_wp_error( $status ) ) {
 					return $status;
 				}

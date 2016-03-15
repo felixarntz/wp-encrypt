@@ -27,17 +27,15 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 		}
 
 		public static function get_letsencrypt_challenges_dir_path() {
-			if ( defined( 'WP_ENCRYPT_SSL_CHALLENGES_DIR_PATH' ) && WP_ENCRYPT_SSL_CHALLENGES_DIR_PATH ) {
-				return untrailingslashit( WP_ENCRYPT_SSL_CHALLENGES_DIR_PATH );
-			}
-			return self::detect_base( 'path' ) . '/.well-known/acme-challenge';
+			return self::detect_base( 'path' ) . self::get_letsencrypt_challenges_relative_dir();
 		}
 
 		public static function get_letsencrypt_challenges_dir_url() {
-			if ( defined( 'WP_ENCRYPT_SSL_CHALLENGES_DIR_URL' ) && WP_ENCRYPT_SSL_CHALLENGES_DIR_URL ) {
-				return untrailingslashit( WP_ENCRYPT_SSL_CHALLENGES_DIR_URL );
-			}
-			return self::detect_base( 'url' ) . '/.well-known/acme-challenge';
+			return self::detect_base( 'url' ) . self::get_letsencrypt_challenges_relative_dir();
+		}
+
+		private static function get_letsencrypt_challenges_relative_dir() {
+			return '/.well-known/acme-challenge';
 		}
 
 		private static function detect_base( $mode = 'url' ) {
@@ -59,7 +57,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 		}
 
 		public static function base64_url_encode( $data ) {
-			return str_replace( '=', '', strtr( base64_encode( $data, '+/', '-_' ) ) );
+			return str_replace( '=', '', strtr( base64_encode( $data ), '+/', '-_' ) );
 		}
 
 		public static function base64_url_decode( $data ) {

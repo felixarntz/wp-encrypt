@@ -5,9 +5,17 @@
 WP Encrypt
 ==========
 
-Generate and manage SSL certificates for your WordPress sites for free with this Let's Encrypt client.
+Generate and manage SSL certificates for your WordPress sites (or networks) for free with this Let's Encrypt client.
 
 You can download the latest version from the [WordPress plugin repository](http://wordpress.org/plugins/wp-encrypt/). If you prefer to install it from Github, make sure to run `composer install` before using it in order to download the necessary dependencies.
+
+Prerequisites
+-------------
+
+Your WordPress site needs to have the `curl` and `openssl` PHP extensions installed. You also need to ensure that WordPress may write the following locations:
+
+* the directory that will contain the keys and certificates; by default this will be `../letsencrypt` (relative to the site's root directory); this location can be overwritten to any other location by using the constant `WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH`
+* the directory that will contain challenges to verify ownership of a domain; this will be `/.well-known` (relative to the site's root directory); furthermore you need to ensure that this directory is publicly readable
 
 Contributions and Bugs
 ----------------------

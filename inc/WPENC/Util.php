@@ -50,6 +50,9 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			if ( 'account' !== $field && ! is_numeric( $field ) ) {
 				return false;
 			}
+
+			$value['_wp_time'] = current_time( 'mysql' );
+
 			$options = get_site_option( 'wp_encrypt_registration', array() );
 			$options[ $field ] = $value;
 			return update_site_option( 'wp_encrypt_registration', $options );
@@ -60,10 +63,22 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 				return '';
 			}
 			$options = get_site_option( 'wp_encrypt_registration', array() );
-			if ( ! isset( $options[ $field ] ) ) {
+			if ( ! isset( $options[ $field ] ) || ! isset( $options[ $field ]['_wp_time'] ) ) {
 				return '';
 			}
-			return $options[ $field ];
+			return $options[ $field ]['_wp_time'];
+		}
+
+		public static function delete_registration_info( $field ) {
+			if ( 'account' !== $field && ! is_numeric( $field ) ) {
+				return false;
+			}
+
+			$options = get_site_option( 'wp_encrypt_registration', array() );
+			if ( isset( $options[ $field ] ) ) {
+				unset( $options[ $field ] );
+			}
+			return update_site_option( 'wp_encrypt_registration', $options );
 		}
 
 		public static function get_site_domain( $site_id = null ) {

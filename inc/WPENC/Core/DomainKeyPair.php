@@ -23,9 +23,9 @@ if ( ! class_exists( 'WPENC\Core\DomainKeyPair' ) ) {
 
 		public static function get( $domain ) {
 			if ( ! isset( self::$instances[ $domain ] ) ) {
-				self::$instances[ $domain ] = new self( $domain );
+				self::$instances[ $domain ] = new self( $domain );
 			}
-			return self::$instances[ $domain ];
+			return self::$instances[ $domain ];
 		}
 
 		protected function __construct( $domain ) {

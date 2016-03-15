@@ -48,6 +48,9 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 		private $last_response_code = null;
 
 		private $last_response_header = null;
+		private $last_nonce = null;
+		private $last_location = null;
+		private $last_links = null;
 
 		private function __construct() {}
 
@@ -133,7 +136,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			$protected64 = Util::base64_url_encode( json_encode( $protected ) );
 
 			$sign_status = openssl_sign( $protected64 . '.' . $data64, $signature, $account_key_resource, 'SHA256' );
-			if ( false === $status ) {
+			if ( false === $sign_status ) {
 				return new WP_Error( 'private_key_cannot_sign', sprintf( __( 'Could not sign request with private key. Original error message: %s', 'wp-encrypt' ), openssl_error_string() ) );
 			}
 
@@ -154,6 +157,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 
 			$args = array(
 				'method'	=> strtoupper( $method ),
+				'timeout'	=> 10,
 				'headers'	=> array(
 					'Accept'		=> 'application/json',
 					'Content-Type'	=> 'application/json; charset=' . get_option( 'blog_charset' ),
@@ -172,7 +176,9 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			}
 
 			$this->last_response_code = wp_remote_retrieve_response_code( $response );
-			$this->last_response_header = wp_remote_retrieve_header( $response );
+			$this->last_nonce = wp_remote_retrieve_header( $response, 'replay-nonce' );
+			$this->last_location = wp_remote_retrieve_header( $response, 'location' );
+			$this->last_links = wp_remote_retrieve_header( $response, 'link' );
 
 			$body = wp_remote_retrieve_body( $response );
 
@@ -181,32 +187,32 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null === $response ? $body : $response;
 		}
 
-		public function get_last_nonce() {
-			if ( null !== $this->last_response_header && preg_match( '#Replay\-Nonce: (.+)#i', $this->last_response_header, $matches ) ) {
-				return trim( $matches[1] );
-			}
-
-			return null;
-		}
-
-		public function get_last_location() {
-			if ( null !== $this->last_response_header && preg_match( '#Location: (.+)#i', $this->last_response_header, $matches ) ) {
-				return trim( $matches[1] );
-			}
-
-			return null;
-		}
-
 		public function get_last_code() {
-			if ( null !== $this->last_response_code ) {
+			if ( $this->last_response_code ) {
 				return $this->last_response_code;
 			}
 
 			return null;
 		}
 
+		public function get_last_nonce() {
+			if ( $this->last_nonce ) {
+				return $this->last_nonce;
+			}
+
+			return null;
+		}
+
+		public function get_last_location() {
+			if ( $this->last_location ) {
+				return $this->last_location;
+			}
+
+			return null;
+		}
+
 		public function get_last_links() {
-			if ( null !== $this->last_response_header && preg_match_all( '#Link: <(.+)>;rel="up"#', $this->last_response_header, $matches ) ) {
+			if ( $this->last_links && preg_match_all( '#<(.*?)>;rel="up"#x', $this->last_links, $matches ) ) {
 				return $matches[1];
 			}
 

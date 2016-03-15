@@ -70,7 +70,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 				return new WP_Error( 'challenge_self_failed', __( 'Challenge self check failed.', 'wp-encrypt' ) );
 			}
 
-			$result = $client->challenge( $token_uri, $challenge['token'], $data );
+			$result = $client->challenge( $challenge['uri'], $challenge['token'], $data );
 
 			$done = false;
 
@@ -85,6 +85,9 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 				}
 
 				$result = $client->request( $location, 'GET' );
+				if ( 'invalid' === $result['status'] ) {
+					return new WP_Error( 'challenge_remote_failed', __( 'Challenge remote check failed.', 'wp-encrypt' ) );
+				}
 			} while ( ! $done );
 
 			@unlink( $token_path );
