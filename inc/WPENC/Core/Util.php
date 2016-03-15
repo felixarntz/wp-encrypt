@@ -19,6 +19,34 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 	 * @since 0.5.0
 	 */
 	final class Util {
+		public static function needs_filesystem_credentials( $credentials = array() ) {
+			if ( ! WP_Filesystem( $credentials, self::get_letsencrypt_certificates_dir_path() ) || ! WP_Filesystem( $credentials, self::get_letsencrypt_challenges_dir_path() ) ) {
+				return true;
+			}
+
+			return false;
+		}
+
+		public static function maybe_request_filesystem_credentials( $form_post, $extra_fields = array() ) {
+			$post_fields = array( 'hostname', 'port', 'username', 'password', 'public_key', 'private_key' );
+
+			if ( $this->needs_filesystem_credentials() ) {
+				$credentials = request_filesystem_credentials( $form_post, '', false, self::get_letsencrypt_certificates_dir_path(), $extra_fields );
+				if ( ! $credentials ) {
+					exit;
+				}
+				return $credentials;
+			}
+
+			return array();
+		}
+
+		public static function get_filesystem() {
+			global $wp_filesystem;
+
+			return $wp_filesystem;
+		}
+
 		public static function get_letsencrypt_certificates_dir_path() {
 			if ( defined( 'WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH' ) && WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH ) {
 				return untrailingslashit( WP_ENCRYPT_SSL_CERTIFICATES_DIR_PATH );

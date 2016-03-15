@@ -8,6 +8,7 @@
 namespace WPENC;
 
 use WPENC\Core\CertificateManager;
+use WPENC\Core\Util as CoreUtil;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,36 +22,17 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 	 * @internal
 	 * @since 0.5.0
 	 */
-	final class Admin {
+	class Admin {
+		const PAGE_SLUG = 'wp_encrypt';
 
-		/**
-		 * @since 0.5.0
-		 * @var WPENC\Admin|null Holds the instance of this class.
-		 */
-		private static $instance = null;
-
-		/**
-		 * Gets the instance of this class. If it does not exist, it will be created.
-		 *
-		 * @since 0.5.0
-		 * @return WPENC\Admin
-		 */
-		public static function instance() {
-			if ( null == self::$instance ) {
-				self::$instance = new self;
-			}
-
-			return self::$instance;
-		}
-
-		private $credentials = array();
+		protected $context = 'site';
 
 		/**
 		 * Class constructor.
 		 *
 		 * @since 0.5.0
 		 */
-		private function __construct() {
+		protected function __construct() {
 		}
 
 		/**
@@ -59,8 +41,15 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		 * @since 0.5.0
 		 */
 		public function run() {
+			$menu_hook = 'admin_menu';
+			$option_hook = 'pre_update_option_wp_encrypt_settings';
+			if ( 'network' === $this->context ) {
+				$menu_hook = 'network_admin_menu';
+				$option_hook = 'pre_update_site_option_wp_encrypt_settings';
+			}
+
 			add_action( 'admin_init', array( $this, 'init_settings' ) );
-			add_action( 'admin_menu', array( $this, 'init_menu' ) );
+			add_action( $menu_hook, array( $this, 'init_menu' ) );
 
 			add_action( 'admin_action_wpenc_register_account', array( $this, 'action_register_account' ) );
 			add_action( 'admin_action_wpenc_generate_certificate', array( $this, 'action_generate_certificate' ) );
@@ -71,68 +60,74 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			add_action( 'wp_ajax_wpenc_generate_certificate', array( $this, 'ajax_generate_certificate' ) );
 			add_action( 'wp_ajax_wpenc_revoke_certificate', array( $this, 'ajax_revoke_certificate' ) );
 
-			add_filter( 'pre_update_option_wp_encrypt_settings', array( $this, 'check_valid' ) );
+			add_filter( $option_hook, array( $this, 'check_valid' ) );
 		}
 
 		public function init_settings() {
 			register_setting( 'wp_encrypt_settings', 'wp_encrypt_settings', array( $this, 'validate_settings' ) );
-			add_settings_section( 'wp_encrypt_settings', __( 'Settings', 'wp-encrypt' ), array( $this, 'render_settings_description' ), 'wp_encrypt' );
-			add_settings_field( 'organization', __( 'Organization Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), 'wp_encrypt', 'wp_encrypt_settings', array( 'id' => 'organization' ) );
-			add_settings_field( 'country_name', __( 'Country Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), 'wp_encrypt', 'wp_encrypt_settings', array( 'id' => 'country_name' ) );
-			add_settings_field( 'country_code', __( 'Country Code', 'wp-encrypt' ), array( $this, 'render_settings_field' ), 'wp_encrypt', 'wp_encrypt_settings', array( 'id' => 'country_code' ) );
+			add_settings_section( 'wp_encrypt_settings', __( 'Settings', 'wp-encrypt' ), array( $this, 'render_settings_description' ), self::PAGE_SLUG );
+			add_settings_field( 'organization', __( 'Organization Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'organization' ) );
+			add_settings_field( 'country_name', __( 'Country Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'country_name' ) );
+			add_settings_field( 'country_code', __( 'Country Code', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'country_code' ) );
 		}
 
 		public function init_menu() {
-			$page_hook = add_options_page( __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_options', 'wp_encrypt', array( $this, 'render_page' ) );
-
-			add_action( 'load-' . $page_hook, array( $this, 'check_filesystem' ) );
-		}
-
-		public function check_filesystem() {
-			$url = admin_url( 'admin.php?page=wp_encrypt' );
-
-			$this->credentials = CertificateManager::get()->maybe_request_filesystem_credentials( $url );
-		}
-
-		public function post_credentials() {
-			if ( ! is_array( $this->credentials ) ) {
-				return;
-			}
-
-			foreach ( $this->credentials as $key => $value ) {
-				?>
-				<input type="hidden" id="fs-credentials-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" />
-				<?php
-			}
+			add_options_page( __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_options', self::PAGE_SLUG, array( $this, 'render_page' ) );
 		}
 
 		public function render_page() {
-			$base_url = remove_query_arg( 'settings-updated' );
+			if ( CoreUtil::needs_filesystem_credentials() ) {
+				?>
+				<div class="notice notice-warning">
+					<p><?php printf( __( 'The directories %1$s and %2$s that WP Encrypt needs access to are not automatically writable by the site. Unless you change this, it is not possible to auto-renew certificates.', 'wp-encrypt' ), '<code>' . CoreUtil::get_letsencrypt_certificates_dir_path() . '</code>', '<code>' . CoreUtil::get_letsencrypt_challenges_dir_path() . '' ); ?></p>
+					<p><?php _e( 'Note that you can still manually renew certificates by providing valid filesystem credentials each time.', 'wp-encrypt' ); ?></p>
+				</div>
+				<?php
+			}
+
+			$base_url = $this->get_url();
+			$settings_action = 'options.php';
+			if ( 'network' === $this->context ) {
+				$settings_action = 'settings.php';
+			}
+
+			//TODO: make network compatible
 			?>
 			<div class="wrap">
 				<h1><?php _e( 'WP Encrypt', 'wp-encrypt' ); ?></h1>
 
-				<form method="post" action="options.php">
+				<form method="post" action="<?php echo $settings_action; ?>">
 					<?php settings_fields( 'wp_encrypt_settings' ); ?>
-
-					<?php do_settings_sections( 'wp_encrypt' ); ?>
+					<?php do_settings_sections( self::PAGE_SLUG ); ?>
 					<?php submit_button(); ?>
-
-					<?php if ( Util::get_option( 'valid' ) ) : ?>
-						<h2><?php _e( 'Let&rsquo;s Encrypt Account', 'wp-encrypt' ); ?></h2>
-						<p class="submit"><a href="<?php echo wp_nonce_url( add_query_arg( 'action', 'wpenc_register_account', 'options.php' ), 'wp_encrypt_action', 'nonce' ); ?>" class="button button-primary"><?php _e( 'Register Account', 'wp-encrypt' ); ?></a></p>
-
-						<?php if ( $this->can_generate_certificate() ) : ?>
-							<h2><?php _e( 'Let&rsquo;s Encrypt Certificate', 'wp-encrypt' ); ?></h2>
-							<p class="submit">
-								<a href="<?php echo wp_nonce_url( add_query_arg( 'action', 'wpenc_generate_certificate', 'options.php' ), 'wp_encrypt_action', 'nonce' ); ?>" class="button button-primary"><?php _e( 'Generate Certificate', 'wp-encrypt' ); ?></a>
-								<a href="<?php echo wp_nonce_url( add_query_arg( 'action', 'wpenc_revoke_certificate', 'options.php' ), 'wp_encrypt_action', 'nonce' ); ?>" class="button button-secondary"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
-							</p>
-						<?php endif; ?>
-					<?php endif; ?>
 				</form>
+
+				<?php if ( Util::get_option( 'valid' ) ) : ?>
+					<h2><?php _e( 'Let&rsquo;s Encrypt Account', 'wp-encrypt' ); ?></h2>
+
+					<form method="post" action="<?php echo $base_url; ?>">
+						<?php $this->action_fields( 'wpenc_register_account' ); ?>
+						<?php submit_button( __( 'Register Account', 'wp-encrypt' ), 'secondary' ); ?>
+					</form>
+
+					<?php if ( $this->can_generate_certificate() ) : ?>
+						<h2><?php _e( 'Let&rsquo;s Encrypt Certificate', 'wp-encrypt' ); ?></h2>
+
+						<form method="post" action="<?php echo $base_url; ?>">
+							<?php $this->action_fields( 'wpenc_generate_certificate' ); ?>
+							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), 'secondary' ); ?>
+						</form>
+						<form method="post" action="<?php echo $base_url; ?>">
+							<?php $this->action_fields( 'wpenc_revoke_certificate' ); ?>
+							<?php submit_button( __( 'Revoke Certificate', 'wp-encrypt' ), 'delete' ); ?>
+						</form>
+					<?php endif; ?>
+				<?php endif; ?>
 			</div>
 			<?php
+
+			// for AJAX
+			wp_print_request_filesystem_credentials_modal();
 		}
 
 		public function render_settings_description() {
@@ -187,9 +182,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				}
 			}
 
-			set_transient( 'settings_errors', get_settings_errors(), 30 );
+			$this->set_transient( 'settings_errors', get_settings_errors(), 30 );
 
-			wp_redirect( add_query_arg( 'settings-updated', 'true', remove_query_arg( array( 'action', 'nonce' ), wp_get_referer() ) ) );
+			wp_redirect( add_query_arg( 'settings-updated', 'true', $this->get_url() ) );
 			exit;
 		}
 
@@ -206,9 +201,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				}
 			}
 
-			set_transient( 'settings_errors', get_settings_errors(), 30 );
+			$this->set_transient( 'settings_errors', get_settings_errors(), 30 );
 
-			wp_redirect( add_query_arg( 'settings-updated', 'true', remove_query_arg( array( 'action', 'nonce' ), wp_get_referer() ) ) );
+			wp_redirect( add_query_arg( 'settings-updated', 'true', $this->get_url() ) );
 			exit;
 		}
 
@@ -225,9 +220,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				}
 			}
 
-			set_transient( 'settings_errors', get_settings_errors(), 30 );
+			$this->set_transient( 'settings_errors', get_settings_errors(), 30 );
 
-			wp_redirect( add_query_arg( 'settings-updated', 'true', remove_query_arg( array( 'action', 'nonce' ), wp_get_referer() ) ) );
+			wp_redirect( add_query_arg( 'settings-updated', 'true', $this->get_url() ) );
 			exit;
 		}
 
@@ -295,7 +290,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $options;
 		}
 
-		private function register_account() {
+		protected function register_account() {
+			$credentials = $this->maybe_request_filesystem_credentials();
+			if ( false === $credentials ) {
+				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
+			}
+
 			$manager = CertificateManager::get();
 			$response = $manager->register_account();
 			if ( ! is_wp_error( $response ) ) {
@@ -304,12 +304,21 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $response;
 		}
 
-		private function generate_certificate() {
+		protected function generate_certificate() {
 			if ( ! $this->can_generate_certificate() ) {
 				return new WP_Error( 'domain_cannot_sign', __( 'Domain cannot be signed. Either the account is not registered yet or the settings are not valid.', 'wp-encrypt' ) );
 			}
+
+			$credentials = $this->maybe_request_filesystem_credentials();
+			if ( false === $credentials ) {
+				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
+			}
+
+			$domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
+			$addon_domains = 'network' === $this->context ? Util::get_network_addon_domains() : array();
+
 			$manager = CertificateManager::get();
-			$response = $manager->generate_certificate( Util::get_site_domain(), array(), array(
+			$response = $manager->generate_certificate( $domain, $addon_domains, array(
 				'ST'	=> Util::get_option( 'country_name' ),
 				'C'		=> Util::get_option( 'country_code' ),
 				'O'		=> Util::get_option( 'organization' ),
@@ -320,28 +329,35 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $response;
 		}
 
-		private function revoke_certificate() {
+		protected function revoke_certificate() {
+			$credentials = $this->maybe_request_filesystem_credentials();
+			if ( false === $credentials ) {
+				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
+			}
+
+			$domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
+
 			$manager = CertificateManager::get();
-			$response = $manager->revoke_certificate( Util::get_site_domain() );
+			$response = $manager->revoke_certificate( $domain );
 			if ( ! is_wp_error( $response ) ) {
 				Util::delete_registration_info( get_current_blog_id() );
 			}
 			return $response;
 		}
 
-		private function can_generate_certificate() {
+		protected function can_generate_certificate() {
 			return $this->get_account_registered() && Util::get_option( 'valid' );
 		}
 
-		private function get_account_registered() {
+		protected function get_account_registered() {
 			return Util::get_registration_info( 'account' );
 		}
 
-		private function get_certificate_generated() {
+		protected function get_certificate_generated() {
 			return Util::get_registration_info( get_current_blog_id() );
 		}
 
-		private function check_action_request() {
+		protected function check_action_request() {
 			if ( ! isset( $_REQUEST['nonce'] ) ) {
 				return new WP_Error( 'nonce_missing', __( 'Missing nonce.', 'wp-encrypt' ) );
 			}
@@ -350,14 +366,14 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				return new WP_Error( 'nonce_invalid', __( 'Invalid nonce.', 'wp-encrypt' ) );
 			}
 
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( 'network' === $this->context && ! current_user_can( 'manage_network_options' ) || 'site' === $this->context && ! current_user_can( 'manage_options' ) ) {
 				return new WP_Error( 'capabilities_missing', __( 'Missing required capabilities.', 'wp-encrypt' ) );
 			}
 
 			return true;
 		}
 
-		private function check_ajax_request() {
+		protected function check_ajax_request() {
 			if ( ! isset( $_REQUEST['nonce'] ) ) {
 				wp_send_json_error( __( 'Missing nonce.', 'wp-encrypt' ) );
 			}
@@ -366,9 +382,46 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				wp_send_json_error( __( 'Invalid nonce.', 'wp-encrypt' ) );
 			}
 
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( 'network' === $this->context && ! current_user_can( 'manage_network_options' ) || 'site' === $this->context && ! current_user_can( 'manage_options' ) ) {
 				wp_send_json_error( __( 'Missing required capabilities.', 'wp-encrypt' ) );
 			}
+		}
+
+		protected function maybe_request_filesystem_credentials() {
+			if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+				$credentials = array();
+
+				$fields = array( 'hostname', 'port', 'username', 'password', 'public_key', 'private_key', 'connection_type' );
+				foreach ( $fields as $field ) {
+					if ( isset( $_REQUEST[ $field ] ) ) {
+						$credentials[ $field ] = $_REQUEST[ $field ];
+					}
+				}
+
+				if ( CoreUtil::needs_filesystem_credentials( $credentials ) ) {
+					return false;
+				}
+
+				return $credentials;
+			}
+
+			$url = $this->get_url();
+			$extra_fields = array( 'action', 'nonce' );
+
+			return CoreUtil::maybe_request_filesystem_credentials( $url, $extra_fields );
+		}
+
+		protected function action_fields( $action ) {
+			echo '<input type="hidden" name="action" value="' . $action . '" />';
+			wp_nonce_field( 'wp_encrypt_action', 'nonce' );
+		}
+
+		protected function set_transient( $name, $value, $expiration = 0 ) {
+			return set_transient( $name, $value, $expiration );
+		}
+
+		protected function get_url() {
+			return admin_url( 'options-general.php?page=' . self::PAGE_SLUG );
 		}
 	}
 }

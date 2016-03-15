@@ -52,9 +52,11 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		 */
 		protected function run() {
 			if ( is_multisite() ) {
-				//TODO: network admin class
+				$admin = new NetworkAdmin();
+				$admin->run();
 			} else {
-				Admin::instance()->run();
+				$admin = new Admin();
+				$admin->run();
 			}
 		}
 	}

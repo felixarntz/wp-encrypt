@@ -20,17 +20,17 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 	 */
 	final class Util {
 		public static function update_option( $field, $value = '' ) {
-			$options = get_option( 'wp_encrypt_settings', array() );
+			$options = get_site_option( 'wp_encrypt_settings', array() );
 			if ( is_array( $field ) ) {
 				$options = array_merge( $options, $field );
 			} else {
 				$options[ $field ] = $value;
 			}
-			return update_option( 'wp_encrypt_settings', $options );
+			return update_site_option( 'wp_encrypt_settings', $options );
 		}
 
 		public static function get_option( $field ) {
-			$options = get_option( 'wp_encrypt_settings', array() );
+			$options = get_site_option( 'wp_encrypt_settings', array() );
 			if ( ! isset( $options[ $field ] ) ) {
 				switch ( $field ) {
 					case 'organization':
