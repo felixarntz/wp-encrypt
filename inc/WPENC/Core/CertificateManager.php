@@ -152,5 +152,27 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 
 			return true;
 		}
+
+		public function maybe_request_filesystem_credentials( $form_post ) {
+			$post_fields = array( 'hostname', 'port', 'username', 'password', 'public_key', 'private_key' );
+
+			$credentials = array();
+			foreach ( $post_fields as $field ) {
+				if ( isset( $_POST[ $field ] ) ) {
+					$credentials[ $field ] = $_POST[ $field ];
+				}
+			}
+
+			$dirs = array( Util::get_letsencrypt_certificates_dir_path(), Util::get_letsencrypt_challenges_dir_path() );
+
+			if ( ! WP_Filesystem( $credentials, $dirs[0] ) || ! WP_Filesystem( $credentials, $dirs[1] ) ) {
+				$credentials = request_filesystem_credentials( $form_post );
+				if ( ! $credentials ) {
+					exit;
+				}
+			}
+
+			return $credentials;
+		}
 	}
 }

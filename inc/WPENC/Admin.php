@@ -43,6 +43,8 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return self::$instance;
 		}
 
+		private $credentials = array();
+
 		/**
 		 * Class constructor.
 		 *
@@ -81,7 +83,27 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		public function init_menu() {
-			add_options_page( __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_options', 'wp_encrypt', array( $this, 'render_page' ) );
+			$page_hook = add_options_page( __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_options', 'wp_encrypt', array( $this, 'render_page' ) );
+
+			add_action( 'load-' . $page_hook, array( $this, 'check_filesystem' ) );
+		}
+
+		public function check_filesystem() {
+			$url = admin_url( 'admin.php?page=wp_encrypt' );
+
+			$this->credentials = CertificateManager::get()->maybe_request_filesystem_credentials( $url );
+		}
+
+		public function post_credentials() {
+			if ( ! is_array( $this->credentials ) ) {
+				return;
+			}
+
+			foreach ( $this->credentials as $key => $value ) {
+				?>
+				<input type="hidden" id="fs-credentials-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" />
+				<?php
+			}
 		}
 
 		public function render_page() {
