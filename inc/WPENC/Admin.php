@@ -7,9 +7,7 @@
 
 namespace WPENC;
 
-use WPENC\Core\CertificateManager;
 use WPENC\Core\Util as CoreUtil;
-use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die();
@@ -28,14 +26,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		protected $context = 'site';
 
 		/**
-		 * Class constructor.
-		 *
-		 * @since 0.5.0
-		 */
-		protected function __construct() {
-		}
-
-		/**
 		 * Initialization method.
 		 *
 		 * @since 0.5.0
@@ -50,15 +40,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 			add_action( 'admin_init', array( $this, 'init_settings' ) );
 			add_action( $menu_hook, array( $this, 'init_menu' ) );
-
-			add_action( 'admin_action_wpenc_register_account', array( $this, 'action_register_account' ) );
-			add_action( 'admin_action_wpenc_generate_certificate', array( $this, 'action_generate_certificate' ) );
-			add_action( 'admin_action_wpenc_revoke_certificate', array( $this, 'action_revoke_certificate' ) );
-
-			add_action( 'wp_ajax_wpenc_update_settings', array( $this, 'ajax_update_settings' ) );
-			add_action( 'wp_ajax_wpenc_register_account', array( $this, 'ajax_register_account' ) );
-			add_action( 'wp_ajax_wpenc_generate_certificate', array( $this, 'ajax_generate_certificate' ) );
-			add_action( 'wp_ajax_wpenc_revoke_certificate', array( $this, 'ajax_revoke_certificate' ) );
 
 			add_filter( $option_hook, array( $this, 'check_valid' ) );
 		}
@@ -169,114 +150,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $options;
 		}
 
-		public function action_register_account() {
-			$response = $this->check_action_request();
-			if ( is_wp_error( $response ) ) {
-				add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
-			} else {
-				$response = $this->register_account();
-				if ( is_wp_error( $response ) ) {
-					add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
-				} else {
-					add_settings_error( 'wp_encrypt_action', 'account_registered', __( 'Account registered.', 'wp-encrypt' ), 'updated' );
-				}
-			}
-
-			$this->set_transient( 'settings_errors', get_settings_errors(), 30 );
-
-			wp_redirect( add_query_arg( 'settings-updated', 'true', $this->get_url() ) );
-			exit;
-		}
-
-		public function action_generate_certificate() {
-			$response = $this->check_action_request();
-			if ( is_wp_error( $response ) ) {
-				add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
-			} else {
-				$response = $this->generate_certificate();
-				if ( is_wp_error( $response ) ) {
-					add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
-				} else {
-					add_settings_error( 'wp_encrypt_action', 'account_registered', __( 'Domain signed.', 'wp-encrypt' ), 'updated' );
-				}
-			}
-
-			$this->set_transient( 'settings_errors', get_settings_errors(), 30 );
-
-			wp_redirect( add_query_arg( 'settings-updated', 'true', $this->get_url() ) );
-			exit;
-		}
-
-		public function action_revoke_certificate() {
-			$response = $this->check_action_request();
-			if ( is_wp_error( $response ) ) {
-				add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
-			} else {
-				$response = $this->revoke_certificate();
-				if ( is_wp_error( $response ) ) {
-					add_settings_error( 'wp_encrypt_action', $response->get_error_code(), $response->get_error_message(), 'error' );
-				} else {
-					add_settings_error( 'wp_encrypt_action', 'account_registered', __( 'Domain unsigned.', 'wp-encrypt' ), 'updated' );
-				}
-			}
-
-			$this->set_transient( 'settings_errors', get_settings_errors(), 30 );
-
-			wp_redirect( add_query_arg( 'settings-updated', 'true', $this->get_url() ) );
-			exit;
-		}
-
-		public function ajax_update_settings() {
-			$this->check_ajax_request();
-
-			if ( ! isset( $_REQUEST['settings'] ) ) {
-				wp_send_json_error( __( 'No settings provided.', 'wp-encrypt' ) );
-			}
-
-			$options = $this->validate_settings( $_REQUEST['settings'] );
-
-			Util::update_option( $options );
-
-			wp_send_json_success( __( 'Settings updated.', 'wp-encrypt' ) );
-		}
-
-		public function ajax_register_account() {
-			$this->check_ajax_request();
-
-			$response = $this->register_account();
-			if ( is_wp_error( $response ) ) {
-				wp_send_json_error( $response->get_error_message() );
-			}
-
-			$date = mysql2date( get_option( 'date_format' ), $this->get_account_registered(), true );
-
-			wp_send_json_success( sprintf( __( 'The account has been registered on %s.', 'wp-encrypt' ), $date ) );
-		}
-
-		public function ajax_generate_certificate() {
-			$this->check_ajax_request();
-
-			$response = $this->generate_certificate();
-			if ( is_wp_error( $response ) ) {
-				wp_send_json_error( $response->get_error_message() );
-			}
-
-			$date = mysql2date( get_option( 'date_format' ), $this->get_certificate_generated(), true );
-
-			wp_send_json_success( sprintf( __( 'The domain has been last signed on %s.', 'wp-encrypt' ), $date ) );
-		}
-
-		public function ajax_revoke_certificate() {
-			$this->check_ajax_request();
-
-			$response = $this->revoke_certificate();
-			if ( is_wp_error( $response ) ) {
-				wp_send_json_error( $response->get_error_message() );
-			}
-
-			wp_send_json_success( __( 'The domain has been unsigned.', 'wp-encrypt' ) );
-		}
-
 		public function check_valid( $options ) {
 			$required_fields = array( 'country_code', 'country_name', 'organization' );
 			$valid = true;
@@ -290,134 +163,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $options;
 		}
 
-		protected function register_account() {
-			$credentials = $this->maybe_request_filesystem_credentials();
-			if ( false === $credentials ) {
-				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
-			}
-
-			$manager = CertificateManager::get();
-			$response = $manager->register_account();
-			if ( ! is_wp_error( $response ) ) {
-				Util::set_registration_info( 'account', $response );
-			}
-			return $response;
-		}
-
-		protected function generate_certificate() {
-			if ( ! $this->can_generate_certificate() ) {
-				return new WP_Error( 'domain_cannot_sign', __( 'Domain cannot be signed. Either the account is not registered yet or the settings are not valid.', 'wp-encrypt' ) );
-			}
-
-			$credentials = $this->maybe_request_filesystem_credentials();
-			if ( false === $credentials ) {
-				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
-			}
-
-			$domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
-			$addon_domains = 'network' === $this->context ? Util::get_network_addon_domains() : array();
-
-			$manager = CertificateManager::get();
-			$response = $manager->generate_certificate( $domain, $addon_domains, array(
-				'ST'	=> Util::get_option( 'country_name' ),
-				'C'		=> Util::get_option( 'country_code' ),
-				'O'		=> Util::get_option( 'organization' ),
-			) );
-			if ( ! is_wp_error( $response ) ) {
-				Util::set_registration_info( get_current_blog_id(), array() );
-			}
-			return $response;
-		}
-
-		protected function revoke_certificate() {
-			$credentials = $this->maybe_request_filesystem_credentials();
-			if ( false === $credentials ) {
-				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
-			}
-
-			$domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
-
-			$manager = CertificateManager::get();
-			$response = $manager->revoke_certificate( $domain );
-			if ( ! is_wp_error( $response ) ) {
-				Util::delete_registration_info( get_current_blog_id() );
-			}
-			return $response;
-		}
-
-		protected function can_generate_certificate() {
-			return $this->get_account_registered() && Util::get_option( 'valid' );
-		}
-
-		protected function get_account_registered() {
-			return Util::get_registration_info( 'account' );
-		}
-
-		protected function get_certificate_generated() {
-			return Util::get_registration_info( get_current_blog_id() );
-		}
-
-		protected function check_action_request() {
-			if ( ! isset( $_REQUEST['nonce'] ) ) {
-				return new WP_Error( 'nonce_missing', __( 'Missing nonce.', 'wp-encrypt' ) );
-			}
-
-			if ( ! wp_verify_nonce( $_REQUEST['nonce'], 'wp_encrypt_action' ) ) {
-				return new WP_Error( 'nonce_invalid', __( 'Invalid nonce.', 'wp-encrypt' ) );
-			}
-
-			if ( 'network' === $this->context && ! current_user_can( 'manage_network_options' ) || 'site' === $this->context && ! current_user_can( 'manage_options' ) ) {
-				return new WP_Error( 'capabilities_missing', __( 'Missing required capabilities.', 'wp-encrypt' ) );
-			}
-
-			return true;
-		}
-
-		protected function check_ajax_request() {
-			if ( ! isset( $_REQUEST['nonce'] ) ) {
-				wp_send_json_error( __( 'Missing nonce.', 'wp-encrypt' ) );
-			}
-
-			if ( ! check_ajax_referer( 'wp_encrypt_ajax', 'nonce', false ) ) {
-				wp_send_json_error( __( 'Invalid nonce.', 'wp-encrypt' ) );
-			}
-
-			if ( 'network' === $this->context && ! current_user_can( 'manage_network_options' ) || 'site' === $this->context && ! current_user_can( 'manage_options' ) ) {
-				wp_send_json_error( __( 'Missing required capabilities.', 'wp-encrypt' ) );
-			}
-		}
-
-		protected function maybe_request_filesystem_credentials() {
-			if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-				$credentials = array();
-
-				$fields = array( 'hostname', 'port', 'username', 'password', 'public_key', 'private_key', 'connection_type' );
-				foreach ( $fields as $field ) {
-					if ( isset( $_REQUEST[ $field ] ) ) {
-						$credentials[ $field ] = $_REQUEST[ $field ];
-					}
-				}
-
-				if ( CoreUtil::needs_filesystem_credentials( $credentials ) ) {
-					return false;
-				}
-
-				return $credentials;
-			}
-
-			$url = $this->get_url();
-			$extra_fields = array( 'action', 'nonce' );
-
-			return CoreUtil::maybe_request_filesystem_credentials( $url, $extra_fields );
-		}
-
 		protected function action_fields( $action ) {
 			echo '<input type="hidden" name="action" value="' . $action . '" />';
 			wp_nonce_field( 'wp_encrypt_action', 'nonce' );
-		}
-
-		protected function set_transient( $name, $value, $expiration = 0 ) {
-			return set_transient( $name, $value, $expiration );
 		}
 
 		protected function get_url() {

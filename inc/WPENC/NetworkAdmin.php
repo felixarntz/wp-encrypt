@@ -7,10 +7,6 @@
 
 namespace WPENC;
 
-use WPENC\Core\CertificateManager;
-use WPENC\Core\Util as CoreUtil;
-use WP_Error;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	die();
 }
@@ -28,7 +24,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		 *
 		 * @since 0.5.0
 		 */
-		protected function __construct() {
+		public function __construct() {
 			parent::__construct();
 			$this->context = 'network';
 		}
@@ -39,10 +35,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 		public function init_menu() {
 
-		}
-
-		protected function set_transient( $name, $value, $expiration = 0 ) {
-			return set_site_transient( $name, $value, $expiration );
 		}
 
 		protected function get_url() {

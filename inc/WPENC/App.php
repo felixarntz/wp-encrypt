@@ -51,6 +51,9 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		 * @since 0.5.0
 		 */
 		protected function run() {
+			$action_handler = new ActionHandler();
+			$action_handler->run();
+
 			if ( is_multisite() ) {
 				$admin = new NetworkAdmin();
 				$admin->run();
