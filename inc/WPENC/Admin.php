@@ -81,10 +81,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			if ( 'network' === $this->context ) {
 				$base_url = network_admin_url( 'settings.php?page=' . self::PAGE_SLUG );
 				$settings_action = 'settings.php';
-
-				if ( isset( $_GET['updated'] ) ) {
-					?><div id="message" class="updated notice is-dismissible"><p><?php _e( 'Options saved.' ); ?></p></div><?php
-				}
 			}
 
 			?>
@@ -126,7 +122,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		public function render_settings_description() {
-			echo '<p class="description">' . __( 'The following settings are required to generate a certificate for this site.', 'wp-encrypt' ) . '</p>';
+			echo '<p class="description">' . __( 'The following settings are required to generate a certificate.', 'wp-encrypt' ) . '</p>';
 		}
 
 		public function render_settings_field( $args = array() ) {

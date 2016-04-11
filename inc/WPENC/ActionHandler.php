@@ -208,14 +208,16 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		protected function store_and_redirect( $network_wide = fales ) {
 			$func = 'set_transient';
 			$url = admin_url( 'options-general.php?page=wp_encrypt' );
+			$query_arg = 'settings-updated';
 			if ( $network_wide ) {
 				$func = 'set_site_transient';
 				$url = network_admin_url( 'settings.php?page=wp_encrypt' );
+				$query_arg = 'updated';
 			}
 
 			call_user_func( $func, 'settings_errors', get_settings_errors(), 30 );
 
-			wp_redirect( add_query_arg( 'settings-updated', 'true', $url ) );
+			wp_redirect( add_query_arg( $query_arg, 'true', $url ) );
 			exit;
 		}
 	}
