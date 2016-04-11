@@ -122,7 +122,7 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 				'network_id'	=> $network->id,
 			) );
 			foreach ( $sites as $site ) {
-				if ( $site->domain === $network->domain ) {
+				if ( $site->domain === $network->domain || in_array( $site->domain, $addon_domains, true ) ) {
 					continue;
 				}
 				$addon_domains[] = $site->domain;
