@@ -54,13 +54,13 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			$action_handler = new ActionHandler();
 			$action_handler->run();
 
+			$context = 'site';
 			if ( is_multisite() ) {
-				$admin = new NetworkAdmin();
-				$admin->run();
-			} else {
-				$admin = new Admin();
-				$admin->run();
+				$context = 'network';
 			}
+
+			$admin = new Admin( $context );
+			$admin->run();
 		}
 	}
 }

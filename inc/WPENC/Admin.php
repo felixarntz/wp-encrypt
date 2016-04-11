@@ -25,6 +25,10 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 		protected $context = 'site';
 
+		public function __construct( $context = 'site' ) {
+			$this->context = $context;
+		}
+
 		/**
 		 * Initialization method.
 		 *
@@ -45,6 +49,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		public function init_settings() {
+			//TODO: settings for context = 'network'
 			register_setting( 'wp_encrypt_settings', 'wp_encrypt_settings', array( $this, 'validate_settings' ) );
 			add_settings_section( 'wp_encrypt_settings', __( 'Settings', 'wp-encrypt' ), array( $this, 'render_settings_description' ), self::PAGE_SLUG );
 			add_settings_field( 'organization', __( 'Organization Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'organization' ) );
@@ -53,7 +58,13 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		public function init_menu() {
-			add_options_page( __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_options', self::PAGE_SLUG, array( $this, 'render_page' ) );
+			$parent = 'options-general.php';
+			$cap = 'manage_options';
+			if ( 'network' === $this->context ) {
+				$parent = 'settings.php';
+				$cap = 'manage_network_options';
+			}
+			add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), $cap, self::PAGE_SLUG, array( $this, 'render_page' ) );
 		}
 
 		public function render_page() {
@@ -66,9 +77,10 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				<?php
 			}
 
-			$base_url = $this->get_url();
+			$base_url = admin_url( 'options-general.php?page=' . self::PAGE_SLUG );
 			$settings_action = 'options.php';
 			if ( 'network' === $this->context ) {
+				$base_url = network_admin_url( 'settings.php?page=' . self::PAGE_SLUG );
 				$settings_action = 'settings.php';
 			}
 
@@ -166,10 +178,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		protected function action_fields( $action ) {
 			echo '<input type="hidden" name="action" value="' . $action . '" />';
 			wp_nonce_field( 'wp_encrypt_action', 'nonce' );
-		}
-
-		protected function get_url() {
-			return admin_url( 'options-general.php?page=' . self::PAGE_SLUG );
 		}
 	}
 }

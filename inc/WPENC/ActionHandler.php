@@ -36,13 +36,6 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			}
 		}
 
-		public function get_nonce( $ajax = false ) {
-			if ( $ajax ) {
-				return wp_create_nonce( 'wp_encrypt_ajax' );
-			}
-			return wp_create_nonce( 'wp_encrypt_action' );
-		}
-
 		public function request() {
 			$this->handle_request();
 		}
@@ -65,9 +58,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 
 			Util::set_registration_info( 'account', $response );
 
-			$date = mysql2date( get_option( 'date_format' ), $this->get_account_registered(), true );
-
-			return sprintf( __( 'The account has been registered on %s.', 'wp-encrypt' ), $date );
+			return __( 'Account registered.', 'wp-encrypt' );
 		}
 
 		protected function generate_certificate( $data = array(), $network_wide = false ) {
@@ -93,12 +84,14 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return $response;
 			}
 
-			//TODO
-			Util::set_registration_info( get_current_blog_id(), array() );
+			$ids = $network_wide ? Util::get_current_network_site_ids() : Util::get_current_site_id();
 
-			$date = mysql2date( get_option( 'date_format' ), $this->get_certificate_generated(), true );
+			Util::set_registration_info( $ids, array() );
 
-			return sprintf( __( 'The domain has been last signed on %s.', 'wp-encrypt' ), $date );
+			$site_domains = $addon_domains;
+			array_unshift( $site_domains, $domain );
+
+			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $site_domains ) );
 		}
 
 		protected function revoke_certificate( $data = array(), $network_wide = false ) {
@@ -115,21 +108,15 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return $response;
 			}
 
-			Util::delete_registration_info( get_current_blog_id() );
+			$ids = $network_wide ? Util::get_current_network_site_ids() : Util::get_current_site_id();
 
-			return __( 'The domain has been unsigned.', 'wp-encrypt' );
+			Util::delete_registration_info( $ids );
+
+			return __( 'Certificate revoked.', 'wp-encrypt' );
 		}
 
 		protected function can_generate_certificate() {
-			return $this->get_account_registered() && Util::get_option( 'valid' );
-		}
-
-		protected function get_account_registered() {
-			return Util::get_registration_info( 'account' );
-		}
-
-		protected function get_certificate_generated() {
-			return Util::get_registration_info( get_current_blog_id() );
+			return Util::get_registration_info( 'account' ) && Util::get_option( 'valid' );
 		}
 
 		protected function maybe_request_filesystem_credentials() {
@@ -176,7 +163,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		}
 
 		protected function is_network_request() {
-			return isset( $_REQUEST['context'] ) && 'network' === $_REQUEST['context'];
+			return is_network_admin() || isset( $_REQUEST['context'] ) && 'network' === $_REQUEST['context'];
 		}
 
 		protected function check_request( $action, $ajax = false, $network_wide = false ) {
