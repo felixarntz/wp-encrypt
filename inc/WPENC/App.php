@@ -57,6 +57,9 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			$context = 'site';
 			if ( is_multisite() ) {
 				$context = 'network';
+
+				$settings_api = new NetworkSettingsAPI();
+				$settings_api->run();
 			}
 
 			$admin = new Admin( $context );

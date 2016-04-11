@@ -49,7 +49,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		public function init_settings() {
-			//TODO: settings for context = 'network'
 			register_setting( 'wp_encrypt_settings', 'wp_encrypt_settings', array( $this, 'validate_settings' ) );
 			add_settings_section( 'wp_encrypt_settings', __( 'Settings', 'wp-encrypt' ), array( $this, 'render_settings_description' ), self::PAGE_SLUG );
 			add_settings_field( 'organization', __( 'Organization Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'organization' ) );
@@ -82,9 +81,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			if ( 'network' === $this->context ) {
 				$base_url = network_admin_url( 'settings.php?page=' . self::PAGE_SLUG );
 				$settings_action = 'settings.php';
+
+				if ( isset( $_GET['updated'] ) ) {
+					?><div id="message" class="updated notice is-dismissible"><p><?php _e( 'Options saved.' ); ?></p></div><?php
+				}
 			}
 
-			//TODO: make network compatible
 			?>
 			<div class="wrap">
 				<h1><?php _e( 'WP Encrypt', 'wp-encrypt' ); ?></h1>
