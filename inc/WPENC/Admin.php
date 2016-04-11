@@ -70,24 +70,19 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			if ( CoreUtil::needs_filesystem_credentials() ) {
 				?>
 				<div class="notice notice-warning">
-					<p><?php printf( __( 'The directories %1$s and %2$s that WP Encrypt needs access to are not automatically writable by the site. Unless you change this, it is not possible to auto-renew certificates.', 'wp-encrypt' ), '<code>' . CoreUtil::get_letsencrypt_certificates_dir_path() . '</code>', '<code>' . CoreUtil::get_letsencrypt_challenges_dir_path() . '' ); ?></p>
+					<p><?php printf( __( 'The directories %1$s and %2$s that WP Encrypt needs access to are not automatically writable by the site. Unless you change this, it is not possible to auto-renew certificates.', 'wp-encrypt' ), '<code>' . CoreUtil::get_letsencrypt_certificates_dir_path() . '</code>', '<code>' . CoreUtil::get_letsencrypt_challenges_dir_path() . '</code>' ); ?></p>
 					<p><?php _e( 'Note that you can still manually renew certificates by providing valid filesystem credentials each time.', 'wp-encrypt' ); ?></p>
 				</div>
 				<?php
 			}
 
-			$base_url = admin_url( 'options-general.php?page=' . self::PAGE_SLUG );
-			$settings_action = 'options.php';
-			if ( 'network' === $this->context ) {
-				$base_url = network_admin_url( 'settings.php?page=' . self::PAGE_SLUG );
-				$settings_action = 'settings.php';
-			}
+			$form_action = 'network' === $this->context ? 'settings.php' : 'options.php';
 
 			?>
 			<div class="wrap">
 				<h1><?php _e( 'WP Encrypt', 'wp-encrypt' ); ?></h1>
 
-				<form method="post" action="<?php echo $settings_action; ?>">
+				<form method="post" action="<?php echo $form_action; ?>">
 					<?php settings_fields( 'wp_encrypt_settings' ); ?>
 					<?php do_settings_sections( self::PAGE_SLUG ); ?>
 					<?php submit_button(); ?>
@@ -96,19 +91,19 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				<?php if ( Util::get_option( 'valid' ) ) : ?>
 					<h2><?php _e( 'Let&rsquo;s Encrypt Account', 'wp-encrypt' ); ?></h2>
 
-					<form method="post" action="<?php echo $base_url; ?>">
+					<form method="post" action="<?php echo $form_action; ?>">
 						<?php $this->action_fields( 'wpenc_register_account' ); ?>
 						<?php submit_button( __( 'Register Account', 'wp-encrypt' ), 'secondary' ); ?>
 					</form>
 
-					<?php if ( $this->can_generate_certificate() ) : ?>
+					<?php if ( Util::can_generate_certificate() ) : ?>
 						<h2><?php _e( 'Let&rsquo;s Encrypt Certificate', 'wp-encrypt' ); ?></h2>
 
-						<form method="post" action="<?php echo $base_url; ?>">
+						<form method="post" action="<?php echo $form_action; ?>">
 							<?php $this->action_fields( 'wpenc_generate_certificate' ); ?>
 							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), 'secondary' ); ?>
 						</form>
-						<form method="post" action="<?php echo $base_url; ?>">
+						<form method="post" action="<?php echo $form_action; ?>">
 							<?php $this->action_fields( 'wpenc_revoke_certificate' ); ?>
 							<?php submit_button( __( 'Revoke Certificate', 'wp-encrypt' ), 'delete' ); ?>
 						</form>
@@ -118,7 +113,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			<?php
 
 			// for AJAX
-			wp_print_request_filesystem_credentials_modal();
+			if ( CoreUtil::needs_filesystem_credentials() ) {
+				wp_print_request_filesystem_credentials_modal();
+			}
 		}
 
 		public function render_settings_description() {

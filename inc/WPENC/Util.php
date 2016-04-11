@@ -80,6 +80,10 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			return update_site_option( 'wp_encrypt_registration', $options );
 		}
 
+		public static function can_generate_certificate() {
+			return self::get_registration_info( 'account' ) && self::get_option( 'valid' );
+		}
+
 		public static function get_current_site_id() {
 			return get_current_blog_id();
 		}

@@ -43,25 +43,36 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 		}
 
 		public function exists() {
-			return file_exists( $this->path . '/' . self::FULLCHAIN_NAME ) && file_exists( $this->path . '/' . self::CERT_NAME ) && file_exists( $this->path . '/' . self::CHAIN_NAME );
+			$filesystem = Util::get_filesystem();
+
+			return $filesystem->exists( $this->path . '/' . self::FULLCHAIN_NAME ) && $filesystem->exists( $this->path . '/' . self::CERT_NAME ) && $filesystem->exists( $this->path . '/' . self::CHAIN_NAME );
 		}
 
 		public function set( $certs ) {
+			$filesystem = Util::get_filesystem();
+
+			$status = Util::maybe_create_letsencrypt_certificates_dir();
+			if ( is_wp_error( $status ) ) {
+				return $status;
+			}
+
 			$certs = array_map( array( $this, 'parse_pem' ), $certs );
-			if ( false === @file_put_contents( $this->path . '/' . self::FULLCHAIN_NAME, implode( "\n", $certs ) ) ) {
+			if ( false === $filesystem->put_contents( $this->path . '/' . self::FULLCHAIN_NAME, implode( "\n", $certs ) ) ) {
 				return new WP_Error( 'new_cert_cannot_write_fullchain', sprintf( __( 'Could not write certificates to file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/' . self::FULLCHAIN_NAME ) );
 			}
-			if ( false === @file_put_contents( $this->path . '/' . self::CERT_NAME, array_shift( $certs ) ) ) {
+			if ( false === $filesystem->put_contents( $this->path . '/' . self::CERT_NAME, array_shift( $certs ) ) ) {
 				return new WP_Error( 'new_cert_cannot_write_cert', sprintf( __( 'Could not write certificate to file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/' . self::CERT_NAME ) );
 			}
-			if ( false === @file_put_contents( $this->path . '/' . self::CHAIN_NAME, implode( "\n", $certs ) ) ) {
+			if ( false === $filesystem->put_contents( $this->path . '/' . self::CHAIN_NAME, implode( "\n", $certs ) ) ) {
 				return new WP_Error( 'new_cert_cannot_write_chain', sprintf( __( 'Could not write certificates to file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/' . self::CHAIN_NAME ) );
 			}
 			return true;
 		}
 
 		public function read() {
-			$pem = @file_get_contents( $this->path . '/' . self::CERT_NAME );
+			$filesystem = Util::get_filesystem();
+
+			$pem = $filesystem->get_contents( $this->path . '/' . self::CERT_NAME );
 			if ( false === $pem ) {
 				return new WP_Error( 'new_cert_cannot_read_cert', sprintf( __( 'Could not read certificate from file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/' . self::CERT_NAME ) );
 			}
@@ -76,15 +87,14 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 		}
 
 		public function generate_csr( $key_resource, $domains, $dn = array() ) {
-			$san = implode( ',', array_map( array( $this, 'dnsify' ), $domains ) );
+			$filesystem = Util::get_filesystem();
 
-			$tmp_conf = tmpfile();
-			if ( false === $tmp_conf ) {
-				return new WP_Error( 'csr_cannot_generate_tmp_file', __( 'Could not generate temporary file to generate CSR. Please check your filesystem permissions.', 'wp-encrypt' ) );
+			$status = Util::maybe_create_letsencrypt_certificates_dir();
+			if ( is_wp_error( $status ) ) {
+				return $status;
 			}
 
-			$tmp_conf_meta = stream_get_meta_data( $tmp_conf );
-			$tmp_conf_path = $tmp_conf_meta['uri'];
+			$san = implode( ',', array_map( array( $this, 'dnsify' ), $domains ) );
 
 			$output = 'HOME = .
 RANDFILE = $ENV::HOME/.rnd
@@ -100,8 +110,10 @@ basicConstraints = CA:FALSE
 subjectAltName = ' . $san . '
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment';
 
-			if ( false === fwrite( $tmp_conf, $output ) ) {
-				return new WP_Error( 'csr_cannot_write_tmp_file', __( 'Could not write to temporary file to generate CSR. Please check your filesystem permissions.', 'wp-encrypt' ) );
+			$tmp_config_path = tempnam( sys_get_temp_dir(), 'wpenc' );
+
+			if ( false === $filesystem->put_contents( $tmp_config_path, $output ) ) {
+				return new WP_Error( 'csr_cannot_write_tmp_file', __( 'Could not write CSR configuration to temporary file. Please check your filesystem permissions.', 'wp-encrypt' ) );
 			}
 
 			$dn = wp_parse_args( $dn, array(
@@ -114,20 +126,22 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment';
 			$dn = apply_filters( 'wp_encrypt_csr_dn', $dn, $this->domain );
 
 			$csr = openssl_csr_new( $dn, $key_resource, array(
-				'config'		=> $tmp_conf_path,
+				'config'		=> $tmp_config_path,
 				'digest_alg'	=> 'sha256',
 			) );
 			if ( false === $csr ) {
+				$filesystem->delete( $tmp_config_path );
 				return new WP_Error( 'csr_cannot_generate', sprintf( __( 'Could not generate CSR. Original error message: %s', 'wp-encrypt' ), openssl_error_string() ) );
 			}
 
 			if ( false === openssl_csr_export( $csr, $csr ) ) {
+				$filesystem->delete( $tmp_config_path );
 				return new WP_Error( 'csr_cannot_export', sprintf( __( 'Could not export CSR. Original error message: %s', 'wp-encrypt' ), openssl_error_string() ) );
 			}
 
-			fclose( $tmp_conf );
+			$filesystem->delete( $tmp_config_path );
 
-			if ( false === @file_put_contents( $this->path . '/last.csr', $csr ) ) {
+			if ( false === $filesystem->put_contents( $this->path . '/last.csr', $csr ) ) {
 				return new WP_Error( 'csr_cannot_write', sprintf( __( 'Could not write CSR into file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/last.csr' ) );
 			}
 

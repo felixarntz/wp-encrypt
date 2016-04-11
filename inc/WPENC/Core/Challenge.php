@@ -22,6 +22,13 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 	 */
 	final class Challenge {
 		public static function validate( $domain, $account_key_details ) {
+			$filesystem = Util::get_filesystem();
+
+			$status = Util::maybe_create_letsencrypt_challenges_dir();
+			if ( is_wp_error( $status ) ) {
+				return $status;
+			}
+
 			$client = Client::get();
 
 			$response = $client->auth( $domain );
@@ -48,7 +55,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 			$directory = Util::get_letsencrypt_challenges_dir_path();
 			$token_path = $directory . '/' . $challenge['token'];
 
-			if ( ! is_dir( $directory ) && ! @mkdir( $directory, 0755, true ) ) {
+			if ( ! $filesystem->is_dir( $directory ) && ! $filesystem->mkdir( $directory, 0755, true ) ) {
 				return new WP_Error( 'challenge_cannot_create_dir', sprintf( __( 'Could not create challenge directory <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $directory ) );
 			}
 
@@ -59,14 +66,15 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 			);
 			$data = $challenge['token'] . '.' . Util::base64_url_encode( hash( 'sha256', json_encode( $header ), true ) );
 
-			if ( false === file_put_contents( $token_path, $data ) ) {
+			if ( false === $filesystem->put_contents( $token_path, $data ) ) {
 				return new WP_Error( 'challenge_cannot_write_file', sprintf( __( 'Could not write challenge to file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $token_path ) );
 			}
-			chmod( $token_path, 0644 );
+			$filesystem->chmod( $token_path, 0644 );
 
 			$token_uri = Util::get_letsencrypt_challenges_dir_url() . '/' . $challenge['token'];
 
-			if ( $data !== trim( @file_get_contents( $token_uri ) ) ) {
+			if ( $data !== trim( $filesystem->get_contents( $token_uri ) ) ) {
+				$filesystem->delete( $token_path );
 				return new WP_Error( 'challenge_self_failed', __( 'Challenge self check failed.', 'wp-encrypt' ) );
 			}
 
@@ -76,6 +84,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 
 			do {
 				if ( empty( $result['status'] ) || 'invalid' === $result['status'] ) {
+					$filesystem->delete( $token_path );
 					return new WP_Error( 'challenge_remote_failed', __( 'Challenge remote check failed.', 'wp-encrypt' ) );
 				}
 
@@ -86,11 +95,12 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 
 				$result = $client->request( $location, 'GET' );
 				if ( 'invalid' === $result['status'] ) {
+					$filesystem->delete( $token_path );
 					return new WP_Error( 'challenge_remote_failed', __( 'Challenge remote check failed.', 'wp-encrypt' ) );
 				}
 			} while ( ! $done );
 
-			@unlink( $token_path );
+			$filesystem->delete( $token_path );
 
 			return true;
 		}

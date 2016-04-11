@@ -7,6 +7,8 @@
 
 namespace WPENC\Core;
 
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	die();
 }
@@ -19,26 +21,57 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 	 * @since 0.5.0
 	 */
 	final class Util {
-		public static function needs_filesystem_credentials( $credentials = array() ) {
-			if ( ! WP_Filesystem( $credentials, self::get_letsencrypt_certificates_dir_path() ) || ! WP_Filesystem( $credentials, self::get_letsencrypt_challenges_dir_path() ) ) {
-				return true;
+		public static function needs_filesystem_credentials( $credentials = false ) {
+			$path = dirname( self::detect_base( 'path' ) );
+
+			if ( false === $credentials ) {
+				ob_start();
+				$credentials = request_filesystem_credentials( site_url(), '', false, $path );
+				$data = ob_get_clean();
+				if ( false === $credentials ) {
+					return false;
+				}
 			}
 
-			return false;
+			return ! WP_Filesystem( $credentials, $path );
 		}
 
-		public static function maybe_request_filesystem_credentials( $form_post, $extra_fields = array() ) {
-			$post_fields = array( 'hostname', 'port', 'username', 'password', 'public_key', 'private_key' );
+		public static function setup_filesystem( $form_post, $extra_fields = array() ) {
+			global $wp_filesystem;
 
-			if ( $this->needs_filesystem_credentials() ) {
-				$credentials = request_filesystem_credentials( $form_post, '', false, self::get_letsencrypt_certificates_dir_path(), $extra_fields );
-				if ( ! $credentials ) {
+			$path = dirname( self::detect_base( 'path' ) );
+
+			ob_start();
+			if ( false === ( $credentials = request_filesystem_credentials( $form_post, '', false, $path, $extra_fields ) ) ) {
+				$data = ob_get_clean();
+
+				if ( ! empty( $data ) ) {
+					include_once ABSPATH . 'wp-admin/admin-header.php';
+					echo $data;
+					include ABSPATH . 'wp-admin/admin-footer.php';
 					exit;
 				}
-				return $credentials;
+				return false;
 			}
 
-			return array();
+			if ( ! WP_Filesystem( $credentials ) ) {
+				request_filesystem_credentials( $form_post, '', true, $path, $extra_fields );
+				$data = ob_get_clean();
+
+				if ( ! empty( $data ) ) {
+					include_once ABSPATH . 'wp-admin/admin-header.php';
+					echo $data;
+					include ABSPATH . 'wp-admin/admin-footer.php';
+					exit;
+				}
+				return false;
+			}
+
+			if ( ! is_object( $wp_filesystem ) || is_wp_error( $wp_filesystem->errors ) && $wp_filesystem->errors->get_error_code() ) {
+				return false;
+			}
+
+			return true;
 		}
 
 		public static function get_filesystem() {
@@ -60,6 +93,29 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 
 		public static function get_letsencrypt_challenges_dir_url() {
 			return self::detect_base( 'url' ) . self::get_letsencrypt_challenges_relative_dir();
+		}
+
+		public static function maybe_create_letsencrypt_certificates_dir() {
+			return self::maybe_create_dir( self::get_letsencrypt_certificates_dir_path() );
+		}
+
+		public static function maybe_create_letsencrypt_challenges_dir() {
+			return self::maybe_create_dir( self::get_letsencrypt_challenges_dir_path() );
+		}
+
+		private static function maybe_create_dir( $path ) {
+			$filesystem = self::get_filesystem();
+
+			if ( ! $filesystem->is_dir( $path ) ) {
+				if ( ! $filesystem->is_dir( dirname( $path ) ) ) {
+					$filesystem->mkdir( dirname( $path ) );
+				}
+
+				if ( ! $filesystem->mkdir( $path ) ) {
+					return new WP_Error( 'cannot_create_dir', sprintf( __( 'Could not create directory <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $path ) );
+				}
+			}
+			return true;
 		}
 
 		private static function get_letsencrypt_challenges_relative_dir() {

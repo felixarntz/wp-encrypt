@@ -35,6 +35,13 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 		}
 
 		public function generate() {
+			$filesystem = Util::get_filesystem();
+
+			$status = Util::maybe_create_letsencrypt_certificates_dir();
+			if ( is_wp_error( $status ) ) {
+				return $status;
+			}
+
 			$res = openssl_pkey_new( array(
 				'private_key_type'	=> OPENSSL_KEYTYPE_RSA,
 				'private_key_bits'	=> 4096,
@@ -57,18 +64,18 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 
 			$this->public_key = $details['key'];
 
-			if ( ! is_dir( $this->path ) ) {
-				@mkdir( $this->path, 0700, true );
-				if ( ! is_dir( $this->path ) ) {
+			if ( ! $filesystem->is_dir( $this->path ) ) {
+				$filesystem->mkdir( $this->path, 0700, true );
+				if ( ! $filesystem->is_dir( $this->path ) ) {
 					return new WP_Error( 'private_key_cannot_create_dir', sprintf( __( 'Could not create directory <code>%s</code> for private key. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path ) );
 				}
 			}
 
-			if ( false === file_put_contents( $this->path . '/' . self::PRIVATE_NAME, $this->private_key ) ) {
+			if ( false === $filesystem->put_contents( $this->path . '/' . self::PRIVATE_NAME, $this->private_key ) ) {
 				return new WP_Error( 'private_key_cannot_write', sprintf( __( 'Could not write private key into file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/' . self::PRIVATE_NAME ) );
 			}
 
-			if ( false === file_put_contents( $this->path . '/' . self::PUBLIC_NAME, $this->public_key ) ) {
+			if ( false === $filesystem->put_contents( $this->path . '/' . self::PUBLIC_NAME, $this->public_key ) ) {
 				return new WP_Error( 'public_key_cannot_write', sprintf( __( 'Could not write public key into file <code>%s</code>. Please check your filesystem permissions.', 'wp-encrypt' ), $this->path . '/' . self::PUBLIC_NAME ) );
 			}
 
@@ -76,35 +83,43 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 		}
 
 		public function exists() {
-			return file_exists( $this->path . '/' . self::PRIVATE_NAME ) && file_exists( $this->path . '/' . self::PUBLIC_NAME );
+			$filesystem = Util::get_filesystem();
+
+			return $filesystem->exists( $this->path . '/' . self::PRIVATE_NAME ) && $filesystem->exists( $this->path . '/' . self::PUBLIC_NAME );
 		}
 
 		public function get_public( $force_refresh = false ) {
+			$filesystem = Util::get_filesystem();
+
 			if ( null === $this->public_key || $force_refresh ) {
 				$path = $this->path . '/' . self::PUBLIC_NAME;
-				if ( ! file_exists( $path ) ) {
+				if ( ! $filesystem->exists( $path ) ) {
 					return new WP_Error( 'public_key_missing', __( 'Missing public key.', 'wp-encrypt' ) );
 				}
-				$this->public_key = file_get_contents( $path );
+				$this->public_key = $filesystem->get_contents( $path );
 			}
 			return $this->public_key;
 		}
 
 		public function get_private( $force_refresh = false ) {
+			$filesystem = Util::get_filesystem();
+
 			if ( null === $this->private_key || $force_refresh ) {
 				$path = $this->path . '/' . self::PRIVATE_NAME;
-				if ( ! file_exists( $path ) ) {
+				if ( ! $filesystem->exists( $path ) ) {
 					return new WP_Error( 'private_key_missing', __( 'Missing private key.', 'wp-encrypt' ) );
 				}
-				$this->private_key = file_get_contents( $path );
+				$this->private_key = $filesystem->get_contents( $path );
 			}
 			return $this->private_key;
 		}
 
 		public function read_private( $force_refresh = false ) {
+			$filesystem = Util::get_filesystem();
+
 			if ( null === $this->private_key_resource || $force_refresh ) {
 				$path = $this->path . '/' . self::PRIVATE_NAME;
-				if ( ! file_exists( $path ) ) {
+				if ( ! $filesystem->exists( $path ) ) {
 					return new WP_Error( 'private_key_missing', __( 'Missing private key.', 'wp-encrypt' ) );
 				}
 

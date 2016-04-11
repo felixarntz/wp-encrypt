@@ -51,8 +51,5 @@ LaL_WP_Plugin_Loader::load_plugin( array(
 		'curl_setopt',
 		'openssl_pkey_new',
 		'openssl_csr_new',
-		'file_put_contents',
-		'stream_get_meta_data',
-		'tmpfile',
 	),
 ) );

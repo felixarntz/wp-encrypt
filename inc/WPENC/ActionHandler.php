@@ -30,7 +30,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		);
 
 		public function run() {
-			foreach ( $actions as $action ) {
+			foreach ( $this->actions as $action ) {
 				add_action( 'admin_action_wpenc_' . $action, array( $this, 'request' ) );
 				add_action( 'wp_ajax_wpenc_' . $action, array( $this, 'ajax_request' ) );
 			}
@@ -45,8 +45,8 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		}
 
 		protected function register_account( $data = array(), $network_wide = false ) {
-			$credentials = $this->maybe_request_filesystem_credentials();
-			if ( false === $credentials ) {
+			$filesystem_check = $this->maybe_request_filesystem_credentials( $network_wide );
+			if ( false === $filesystem_check ) {
 				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
 			}
 
@@ -62,12 +62,12 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		}
 
 		protected function generate_certificate( $data = array(), $network_wide = false ) {
-			if ( ! $this->can_generate_certificate() ) {
+			if ( ! Util::can_generate_certificate() ) {
 				return new WP_Error( 'domain_cannot_sign', __( 'Domain cannot be signed. Either the account is not registered yet or the settings are not valid.', 'wp-encrypt' ) );
 			}
 
-			$credentials = $this->maybe_request_filesystem_credentials();
-			if ( false === $credentials ) {
+			$filesystem_check = $this->maybe_request_filesystem_credentials( $network_wide );
+			if ( false === $filesystem_check ) {
 				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
 			}
 
@@ -95,8 +95,8 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		}
 
 		protected function revoke_certificate( $data = array(), $network_wide = false ) {
-			$credentials = $this->maybe_request_filesystem_credentials();
-			if ( false === $credentials ) {
+			$filesystem_check = $this->maybe_request_filesystem_credentials( $network_wide );
+			if ( false === $filesystem_check ) {
 				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
 			}
 
@@ -115,11 +115,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return __( 'Certificate revoked.', 'wp-encrypt' );
 		}
 
-		protected function can_generate_certificate() {
-			return Util::get_registration_info( 'account' ) && Util::get_option( 'valid' );
-		}
-
-		protected function maybe_request_filesystem_credentials() {
+		protected function maybe_request_filesystem_credentials( $network_wide = false ) {
 			if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
 				$credentials = array();
 
@@ -134,19 +130,19 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 					return false;
 				}
 
-				return $credentials;
+				return true;
 			}
 
-			$url = $this->get_url();
+			$url = $this->get_url( $network_wide );
 			$extra_fields = array( 'action', 'nonce' );
 
-			return CoreUtil::maybe_request_filesystem_credentials( $url, $extra_fields );
+			return CoreUtil::setup_filesystem( $url, $extra_fields );
 		}
 
 		protected function handle_request( $ajax = false ) {
 			$network_wide = $this->is_network_request();
 
-			$prefix = $ajax ? 'wp_ajax_wpenc_' : 'admin_action_wpenc';
+			$prefix = $ajax ? 'wp_ajax_wpenc_' : 'admin_action_wpenc_';
 			$action = str_replace( $prefix, '', current_action() );
 
 			$valid = $this->check_request( $action, $ajax, $network_wide );
@@ -205,20 +201,25 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			$this->store_and_redirect( $network_wide );
 		}
 
-		protected function store_and_redirect( $network_wide = fales ) {
+		protected function store_and_redirect( $network_wide = false ) {
 			$func = 'set_transient';
-			$url = admin_url( 'options-general.php?page=wp_encrypt' );
 			$query_arg = 'settings-updated';
 			if ( $network_wide ) {
 				$func = 'set_site_transient';
-				$url = network_admin_url( 'settings.php?page=wp_encrypt' );
 				$query_arg = 'updated';
 			}
 
 			call_user_func( $func, 'settings_errors', get_settings_errors(), 30 );
 
-			wp_redirect( add_query_arg( $query_arg, 'true', $url ) );
+			wp_redirect( add_query_arg( $query_arg, 'true', $this->get_url( $network_wide ) ) );
 			exit;
+		}
+
+		protected function get_url( $network_wide = false ) {
+			if ( $network_wide ) {
+				return network_admin_url( 'settings.php?page=wp_encrypt' );
+			}
+			return admin_url( 'options-general.php?page=wp_encrypt' );
 		}
 	}
 }
