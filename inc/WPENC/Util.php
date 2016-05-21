@@ -113,23 +113,28 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			return $network->domain;
 		}
 
-		public static function get_network_addon_domains( $network_id = null ) {
-			if ( null === $network_id ) {
-				$network = get_current_site();
-			} else {
-				$network = wp_get_network( $network_id );
+		public static function get_network_addon_domains( $network_id = null, $global = false ) {
+			$network_id = false;
+
+			if ( ! $global ) {
+				if ( null === $network_id ) {
+					$network = get_current_site();
+				} else {
+					$network = wp_get_network( $network_id );
+				}
+				$network_id = $network->id;
 			}
 
 			$addon_domains = array();
 
 			$sites = wp_get_sites( array(
-				'network_id'	=> $network->id,
+				'network_id'	=> $network_id,
 			) );
 			foreach ( $sites as $site ) {
-				if ( $site->domain === $network->domain || in_array( $site->domain, $addon_domains, true ) ) {
+				if ( $site['domain'] === $network->domain || in_array( $site['domain'], $addon_domains, true ) ) {
 					continue;
 				}
-				$addon_domains[] = $site->domain;
+				$addon_domains[] = $site['domain'];
 			}
 
 			return $addon_domains;

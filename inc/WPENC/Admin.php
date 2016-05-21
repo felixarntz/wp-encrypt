@@ -58,12 +58,10 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 		public function init_menu() {
 			$parent = 'options-general.php';
-			$cap = 'manage_options';
 			if ( 'network' === $this->context ) {
 				$parent = 'settings.php';
-				$cap = 'manage_network_options';
 			}
-			add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), $cap, self::PAGE_SLUG, array( $this, 'render_page' ) );
+			add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_certificates', self::PAGE_SLUG, array( $this, 'render_page' ) );
 		}
 
 		public function render_page() {
@@ -79,33 +77,62 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$form_action = 'network' === $this->context ? 'settings.php' : 'options.php';
 
 			?>
+			<style type="text/css">
+				.wp-encrypt-form {
+					margin-bottom: 40px;
+				}
+
+				.delete-button {
+					margin-left: 6px;
+					line-height: 28px;
+					text-decoration: none;
+				}
+
+				.delete-button:hover {
+					color: #f00;
+					text-decoration: none;
+					border: none;
+				}
+			</style>
 			<div class="wrap">
 				<h1><?php _e( 'WP Encrypt', 'wp-encrypt' ); ?></h1>
 
-				<form method="post" action="<?php echo $form_action; ?>">
+				<form class="wp-encrypt-form" method="post" action="<?php echo $form_action; ?>">
 					<?php settings_fields( 'wp_encrypt_settings' ); ?>
 					<?php do_settings_sections( self::PAGE_SLUG ); ?>
-					<?php submit_button(); ?>
+					<?php submit_button( '', 'primary large', 'submit', false ); ?>
 				</form>
 
 				<?php if ( Util::get_option( 'valid' ) ) : ?>
 					<h2><?php _e( 'Let&rsquo;s Encrypt Account', 'wp-encrypt' ); ?></h2>
 
-					<form method="post" action="<?php echo $form_action; ?>">
-						<?php $this->action_fields( 'wpenc_register_account' ); ?>
-						<?php submit_button( __( 'Register Account', 'wp-encrypt' ), 'secondary' ); ?>
+					<form class="wp-encrypt-form" method="post" action="<?php echo $form_action; ?>">
+						<p class="description">
+							<?php _e( 'By clicking on this button, you will register an account for the above organization with Let&apos;s Encrypt.', 'wp-encrypt' ); ?>
+						</p>
+						<?php $this->action_post_fields( 'wpenc_register_account' ); ?>
+						<?php submit_button( __( 'Register Account', 'wp-encrypt' ), 'secondary', 'submit', false, array( 'id' => 'register-account-button' ) ); ?>
 					</form>
 
 					<?php if ( Util::can_generate_certificate() ) : ?>
 						<h2><?php _e( 'Let&rsquo;s Encrypt Certificate', 'wp-encrypt' ); ?></h2>
 
-						<form method="post" action="<?php echo $form_action; ?>">
-							<?php $this->action_fields( 'wpenc_generate_certificate' ); ?>
-							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), 'secondary' ); ?>
-						</form>
-						<form method="post" action="<?php echo $form_action; ?>">
-							<?php $this->action_fields( 'wpenc_revoke_certificate' ); ?>
-							<?php submit_button( __( 'Revoke Certificate', 'wp-encrypt' ), 'delete' ); ?>
+						<form class="wp-encrypt-form" method="post" action="<?php echo $form_action; ?>">
+							<p class="description">
+								<?php _e( 'Here you can manage the actual certificate.', 'wp-encrypt' ); ?>
+								<?php if ( 'network' === $this->context ) : ?>
+									<?php _e( 'The certificate will be valid for all the sites in your network by default.', 'wp-encrypt' ); ?>
+								<?php endif; ?>
+							</p>
+							<?php $this->action_post_fields( 'wpenc_generate_certificate' ); ?>
+							<?php if ( App::is_multinetwork() ) : ?>
+								<p>
+									<input type="checkbox" id="include_all_networks" name="include_all_networks" value="1" />
+									<span><?php _e( 'Generate a global certificate for all networks? This will ensure that all sites in your entire WordPress setup are covered.', 'wp-encrypt' ); ?></span>
+								</p>
+							<?php endif; ?>
+							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), 'secondary', 'submit', false, array( 'id' => 'generate-certificate-button' ) ); ?>
+							<a id="revoke-certificate-button" class="delete-button" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
 						</form>
 					<?php endif; ?>
 				<?php endif; ?>
@@ -170,9 +197,16 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $options;
 		}
 
-		protected function action_fields( $action ) {
+		protected function action_post_fields( $action ) {
 			echo '<input type="hidden" name="action" value="' . $action . '" />';
-			wp_nonce_field( 'wp_encrypt_action', 'nonce' );
+			wp_nonce_field( 'wp_encrypt_action' );
+		}
+
+		protected function action_get_url( $action ) {
+			$url = ( 'network' === $this->context ) ? network_admin_url( 'settings.php' ) : admin_url( 'options-general.php' );
+			$url = add_query_arg( 'action', $action, $url );
+			$url = wp_nonce_url( $url, 'wp_encrypt_action' );
+			return $url;
 		}
 	}
 }

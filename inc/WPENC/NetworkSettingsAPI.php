@@ -47,6 +47,7 @@ if ( ! class_exists( 'WPENC\NetworkSettingsAPI' ) ) {
 			set_site_transient( 'settings_errors', get_settings_errors(), 30 );
 
 			wp_redirect( add_query_arg( 'updated', 'true', network_admin_url( 'settings.php?page=wp_encrypt' ) ) );
+			exit;
 		}
 
 		public function network_options_head() {
@@ -54,7 +55,7 @@ if ( ! class_exists( 'WPENC\NetworkSettingsAPI' ) ) {
 
 			if ( 'settings.php' === $parent_file ) {
 				if ( isset( $_GET['updated'] ) && $_GET['updated'] && get_site_transient( 'settings_errors' ) ) {
-					$wp_settings_errors = array_merge( $wp_settings_errors, get_site_transient( 'settings_errors' ) );
+					$wp_settings_errors = array_merge( (array) $wp_settings_errors, get_site_transient( 'settings_errors' ) );
 				}
 				settings_errors();
 			}

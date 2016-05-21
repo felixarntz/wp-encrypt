@@ -71,8 +71,10 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
 			}
 
+			$global = isset( $data['include_all_networks'] ) && $data['include_all_networks'];
+
 			$domain = $network_wide ? Util::get_network_domain() : Util::get_site_domain();
-			$addon_domains = $network_wide ? Util::get_network_addon_domains() : array();
+			$addon_domains = $network_wide ? Util::get_network_addon_domains( null, $global ) : array();
 
 			$manager = CertificateManager::get();
 			$response = $manager->generate_certificate( $domain, $addon_domains, array(
@@ -134,7 +136,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			}
 
 			$url = $this->get_url( $network_wide );
-			$extra_fields = array( 'action', 'nonce' );
+			$extra_fields = array( 'action', '_wpnonce' );
 
 			return CoreUtil::setup_filesystem( $url, $extra_fields );
 		}
@@ -147,15 +149,15 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 
 			$valid = $this->check_request( $action, $ajax, $network_wide );
 			if ( is_wp_error( $valid ) ) {
-				$this->handle_error( $valid, $ajax );
+				$this->handle_error( $valid, $ajax, $network_wide );
 			}
 
 			$response = call_user_func( array( $this, $action ), $_REQUEST, $network_wide );
 			if ( is_wp_error( $response ) ) {
-				$this->handle_error( $response, $ajax );
+				$this->handle_error( $response, $ajax, $network_wide );
 			}
 
-			$this->handle_success( $response );
+			$this->handle_success( $response, $ajax, $network_wide );
 		}
 
 		protected function is_network_request() {
@@ -163,16 +165,16 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		}
 
 		protected function check_request( $action, $ajax = false, $network_wide = false ) {
-			if ( ! isset( $_REQUEST['nonce'] ) ) {
+			if ( ! isset( $_REQUEST['_wpnonce'] ) ) {
 				return new WP_Error( 'nonce_missing', __( 'Missing nonce.', 'wp-encrypt' ) );
 			}
 
-			$status = $ajax ? check_ajax_referer( 'wp_encrypt_ajax', 'nonce', false ) : wp_verify_nonce( $_REQUEST['nonce'], 'wp_encrypt_action' );
+			$status = $ajax ? check_ajax_referer( 'wp_encrypt_ajax', '_wpnonce', false ) : wp_verify_nonce( $_REQUEST['_wpnonce'], 'wp_encrypt_action' );
 			if ( ! $status ) {
 				return new WP_Error( 'nonce_invalid', __( 'Invalid nonce.', 'wp-encrypt' ) );
 			}
 
-			if ( $network_wide && ! current_user_can( 'manage_network_options' ) || ! $network_wide && ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( 'manage_certificates' ) ) {
 				return new WP_Error( 'capabilities_lacking', __( 'Lacking required capabilities.', 'wp-encrypt' ) );
 			}
 

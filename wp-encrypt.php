@@ -8,6 +8,7 @@ Author: Felix Arntz
 Author URI: http://leaves-and-love.net
 License: GNU General Public License v3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
+Network: true
 Text Domain: wp-encrypt
 Tags: wordpress, plugin, lets encrypt, ssl, https, free ssl
 */
