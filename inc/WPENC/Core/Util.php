@@ -53,7 +53,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 				}
 			}
 
-			return ! WP_Filesystem( $credentials, $paths[0] );
+			return ! WP_Filesystem( $credentials, $paths[0], true );
 		}
 
 		public static function setup_filesystem( $form_post, $extra_fields = array() ) {
@@ -77,10 +77,6 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 				}
 			}
 
-			if ( $is_direct ) {
-				return true;
-			}
-
 			ob_start();
 			if ( false === ( $credentials = request_filesystem_credentials( $form_post, $type, false, $paths[0], $extra_fields, true ) ) ) {
 				$data = ob_get_clean();
@@ -94,7 +90,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 				return false;
 			}
 
-			if ( ! WP_Filesystem( $credentials ) ) {
+			if ( ! WP_Filesystem( $credentials, $paths[0], true ) ) {
 				request_filesystem_credentials( $form_post, $type, true, $paths[0], $extra_fields, true );
 				$data = ob_get_clean();
 
