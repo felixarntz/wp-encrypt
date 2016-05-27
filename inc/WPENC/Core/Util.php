@@ -30,10 +30,10 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			$type = 'direct';
 			$is_direct = true;
 			foreach ( $paths as $key => $path ) {
-				if ( ! is_dir( $path ) ) {
-					$paths[ $key ] = dirname( $path );
+				if ( ! is_dir( $paths[ $key ] ) ) {
+					$paths[ $key ] = dirname( $paths[ $key ] );
 				}
-				$type = get_filesystem_method( array(), $path, true );
+				$type = get_filesystem_method( array(), $paths[ $key ], true );
 				if ( 'direct' !== $type ) {
 					$is_direct = false;
 					break;
@@ -67,10 +67,10 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			$type = 'direct';
 			$is_direct = true;
 			foreach ( $paths as $key => $path ) {
-				if ( ! is_dir( $path ) ) {
-					$paths[ $key ] = dirname( $path );
+				if ( ! is_dir( $paths[ $key ] ) ) {
+					$paths[ $key ] = dirname( $paths[ $key ] );
 				}
-				$type = get_filesystem_method( array(), $path, true );
+				$type = get_filesystem_method( array(), $paths[ $key ], true );
 				if ( 'direct' !== $type ) {
 					$is_direct = false;
 					break;
