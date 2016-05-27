@@ -22,27 +22,61 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 	 */
 	final class Util {
 		public static function needs_filesystem_credentials( $credentials = false ) {
-			$path = dirname( self::detect_base( 'path' ) );
+			$paths = array(
+				dirname( self::get_letsencrypt_certificates_dir_path() ),
+				self::get_letsencrypt_challenges_dir_path(),
+			);
+
+			$type = 'direct';
+			$is_direct = true;
+			foreach ( $paths as $path ) {
+				$type = get_filesystem_method( array(), $path, false );
+				if ( 'direct' !== $type ) {
+					$is_direct = false;
+					break;
+				}
+			}
+
+			if ( $is_direct ) {
+				return false;
+			}
 
 			if ( false === $credentials ) {
 				ob_start();
-				$credentials = request_filesystem_credentials( site_url(), '', false, $path );
+				$credentials = request_filesystem_credentials( site_url(), $type, false, $paths[0] );
 				$data = ob_get_clean();
 				if ( false === $credentials ) {
 					return false;
 				}
 			}
 
-			return ! WP_Filesystem( $credentials, $path );
+			return ! WP_Filesystem( $credentials, $paths[0] );
 		}
 
 		public static function setup_filesystem( $form_post, $extra_fields = array() ) {
 			global $wp_filesystem;
 
-			$path = dirname( self::detect_base( 'path' ) );
+			$paths = array(
+				dirname( self::get_letsencrypt_certificates_dir_path() ),
+				self::get_letsencrypt_challenges_dir_path(),
+			);
+
+			$type = 'direct';
+			$is_direct = true;
+			foreach ( $paths as $path ) {
+				$type = get_filesystem_method( array(), $path, false );
+				if ( 'direct' !== $type ) {
+					$is_direct = false;
+					break;
+				}
+			}
+
+			if ( $is_direct ) {
+				return true;
+			}
 
 			ob_start();
-			if ( false === ( $credentials = request_filesystem_credentials( $form_post, '', false, $path, $extra_fields ) ) ) {
+			if ( false === ( $credentials = request_filesystem_credentials( $form_post, $type, false, $paths[0], $extra_fields ) ) ) {
 				$data = ob_get_clean();
 
 				if ( ! empty( $data ) ) {
@@ -55,7 +89,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			}
 
 			if ( ! WP_Filesystem( $credentials ) ) {
-				request_filesystem_credentials( $form_post, '', true, $path, $extra_fields );
+				request_filesystem_credentials( $form_post, $type, true, $paths[0], $extra_fields );
 				$data = ob_get_clean();
 
 				if ( ! empty( $data ) ) {
