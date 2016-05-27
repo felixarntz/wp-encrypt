@@ -23,14 +23,17 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 	final class Util {
 		public static function needs_filesystem_credentials( $credentials = false ) {
 			$paths = array(
-				dirname( self::get_letsencrypt_certificates_dir_path() ),
+				self::get_letsencrypt_certificates_dir_path(),
 				self::get_letsencrypt_challenges_dir_path(),
 			);
 
 			$type = 'direct';
 			$is_direct = true;
-			foreach ( $paths as $path ) {
-				$type = get_filesystem_method( array(), $path, false );
+			foreach ( $paths as $key => $path ) {
+				if ( ! is_dir( $path ) ) {
+					$paths[ $key ] = dirname( $path );
+				}
+				$type = get_filesystem_method( array(), $path, true );
 				if ( 'direct' !== $type ) {
 					$is_direct = false;
 					break;
@@ -43,10 +46,10 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 
 			if ( false === $credentials ) {
 				ob_start();
-				$credentials = request_filesystem_credentials( site_url(), $type, false, $paths[0] );
+				$credentials = request_filesystem_credentials( site_url(), $type, false, $paths[0], null, true );
 				$data = ob_get_clean();
 				if ( false === $credentials ) {
-					return false;
+					return true;
 				}
 			}
 
@@ -57,14 +60,17 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			global $wp_filesystem;
 
 			$paths = array(
-				dirname( self::get_letsencrypt_certificates_dir_path() ),
+				self::get_letsencrypt_certificates_dir_path(),
 				self::get_letsencrypt_challenges_dir_path(),
 			);
 
 			$type = 'direct';
 			$is_direct = true;
-			foreach ( $paths as $path ) {
-				$type = get_filesystem_method( array(), $path, false );
+			foreach ( $paths as $key => $path ) {
+				if ( ! is_dir( $path ) ) {
+					$paths[ $key ] = dirname( $path );
+				}
+				$type = get_filesystem_method( array(), $path, true );
 				if ( 'direct' !== $type ) {
 					$is_direct = false;
 					break;
@@ -76,7 +82,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			}
 
 			ob_start();
-			if ( false === ( $credentials = request_filesystem_credentials( $form_post, $type, false, $paths[0], $extra_fields ) ) ) {
+			if ( false === ( $credentials = request_filesystem_credentials( $form_post, $type, false, $paths[0], $extra_fields, true ) ) ) {
 				$data = ob_get_clean();
 
 				if ( ! empty( $data ) ) {
@@ -89,7 +95,7 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			}
 
 			if ( ! WP_Filesystem( $credentials ) ) {
-				request_filesystem_credentials( $form_post, $type, true, $paths[0], $extra_fields );
+				request_filesystem_credentials( $form_post, $type, true, $paths[0], $extra_fields, true );
 				$data = ob_get_clean();
 
 				if ( ! empty( $data ) ) {
