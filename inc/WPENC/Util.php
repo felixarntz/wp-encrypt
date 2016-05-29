@@ -46,44 +46,38 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			return $options[ $field ];
 		}
 
-		public static function set_registration_info( $fields, $value ) {
+		public static function set_registration_info( $field, $value ) {
+			if ( 'account' !== $field ) {
+				$field = 'certificate';
+			}
+
 			$value['_wp_time'] = current_time( 'mysql' );
 
 			$options = get_site_option( 'wp_encrypt_registration', array() );
-			foreach ( (array) $fields as $field ) {
-				if ( 'account' !== $field && ! is_numeric( $field ) ) {
-					continue;
-				}
-				$options[ $field ] = $value;
-			}
+			$options[ $field ] = $value;
 			return update_site_option( 'wp_encrypt_registration', $options );
 		}
 
 		public static function get_registration_info( $field ) {
-			if ( 'account' !== $field && ! is_numeric( $field ) ) {
-				return get_site_option( 'wp_encrypt_registration', array() );
+			if ( 'account' !== $field ) {
+				$field = 'certificate';
 			}
+
 			$options = get_site_option( 'wp_encrypt_registration', array() );
-			if ( ! isset( $options[ $field ] ) || ! isset( $options[ $field ]['_wp_time'] ) ) {
-				return '';
+			if ( ! isset( $options[ $field ] ) ) {
+				return array();
 			}
-			return $options[ $field ]['_wp_time'];
+			return $options[ $field ];
 		}
 
-		public static function delete_registration_info( $fields ) {
+		public static function delete_registration_info( $field ) {
+			if ( 'account' !== $field ) {
+				$field = 'certificate';
+			}
+
 			$options = get_site_option( 'wp_encrypt_registration', array() );
-			if ( 'certificate' === $fields ) {
-				if ( isset( $options['account'] ) ) {
-					$options = array( 'account' => $options['account'] );
-				} else {
-					$options = array();
-				}
-			} else {
-				foreach ( (array) $fields as $field ) {
-					if ( isset( $options[ $field ] ) ) {
-						unset( $options[ $field ] );
-					}
-				}
+			if ( isset( $options[ $field ] ) ) {
+				unset( $options[ $field ] );
 			}
 			return update_site_option( 'wp_encrypt_registration', $options );
 		}

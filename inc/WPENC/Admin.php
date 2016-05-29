@@ -76,22 +76,21 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				<?php
 			}
 
-			$registration_info = Util::get_registration_info();
+			$account_registration_info = Util::get_registration_info( 'account' );
+			$certificate_registration_info = Util::get_registration_info( 'certificate' );
 
 			$account_registration_timestamp = false;
 			$certificate_generation_timestamp = false;
 			$site_domains = array();
 
-			if ( isset( $registration_info['account'] ) ) {
-				$account_registration_timestamp = strtotime( $registration_info['account']['_wp_time'] );
-				unset( $registration_info['account'] );
+			if ( isset( $account_registration_info['_wp_time'] ) ) {
+				$account_registration_timestamp = strtotime( $account_registration_info['_wp_time'] );
 			}
 
-			if ( 0 < count( $registration_info ) ) {
-				$first_key = key( $registration_info );
-				$certificate_generation_timestamp = strtotime( $registration_info[ $first_key ]['_wp_time'] );
-				if ( isset( $registration_info[ $first_key ]['domains'] ) ) {
-					$site_domains = $registration_info[ $first_key ]['domains'];
+			if ( isset( $certificate_registration_info['_wp_time'] ) ) {
+				$certificate_generation_timestamp = strtotime( $certificate_registration_info );
+				if ( isset( $certificate_registration_info['domains'] ) ) {
+					$site_domains = $certificate_registration_info['domains'];
 				}
 			}
 
@@ -180,7 +179,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 							<?php endif; ?>
 						</form>
 
-						<?php $this->render_instructions(); ?>
+						<?php if ( $has_certificate ) : ?>
+							<?php $this->render_instructions(); ?>
+						<?php endif; ?>
 					<?php endif; ?>
 				<?php endif; ?>
 			</div>
@@ -321,7 +322,7 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 					<br />
 					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
 					<br />
-					<textarea class="code" readonly="readonly" cols="100" rows="8">
+					<textarea class="code" readonly="readonly" cols="100" rows="9">
 						<?php echo esc_textarea( $config ); ?>
 					</textarea>
 				</li>
@@ -357,7 +358,7 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 					<br />
 					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
 					<br />
-					<textarea class="code" readonly="readonly" cols="100" rows="8">
+					<textarea class="code" readonly="readonly" cols="100" rows="16">
 						<?php echo esc_textarea( $config ); ?>
 					</textarea>
 				</li>

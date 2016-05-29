@@ -86,9 +86,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return $response;
 			}
 
-			$ids = $network_wide ? Util::get_network_site_ids( $global ) : Util::get_site_id();
-
-			Util::set_registration_info( $ids, $response );
+			Util::set_registration_info( 'certificate', $response );
 
 			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $response['domains'] ) );
 		}
