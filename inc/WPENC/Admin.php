@@ -161,7 +161,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 								<?php if ( $certificate_generation_timestamp ) : ?>
 									<br />
 									<?php if ( 'network' === $this->context && 0 < count( $site_domains ) ) : ?>
-										<?php printf( __( 'Your certificate was last generated on %1$s at %2$s for the following domains: %3$s', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $certificate_generation_timestamp ), date_i18n( get_option( 'time_format' ), $certificate_generation_timestamp ), implode( ', ' $site_domains ) ); ?>
+										<?php printf( __( 'Your certificate was last generated on %1$s at %2$s for the following domains: %3$s', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $certificate_generation_timestamp ), date_i18n( get_option( 'time_format' ), $certificate_generation_timestamp ), implode( ', ', $site_domains ) ); ?>
 									<?php else : ?>
 										<?php printf( __( 'Your certificate was last generated on %1$s at %2$s.', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $certificate_generation_timestamp ), date_i18n( get_option( 'time_format' ), $certificate_generation_timestamp ) ); ?>
 									<?php endif; ?>
