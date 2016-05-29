@@ -38,11 +38,23 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 					case 'country_code':
 						return substr( get_locale(), 3, 2 );
 					case 'valid':
+					case 'show_warning':
 						return false;
+					case 'show_warning_days':
+						return 15;
 					default:
 						return '';
 				}
 			}
+
+			switch ( $field ) {
+				case 'valid':
+				case 'show_warning':
+					return (bool) $options[ $field ];
+				case 'show_warning_days':
+					return absint( $options[ $field ] );
+			}
+
 			return $options[ $field ];
 		}
 

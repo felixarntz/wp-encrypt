@@ -44,6 +44,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				$option_hook = 'pre_update_site_option_wp_encrypt_settings';
 			}
 
+			add_action( 'admin_notices', array( $this, 'maybe_show_expire_warning' ) );
+			add_action( 'network_admin_notices', array( $this, 'maybe_show_expire_warning' ) );
+
 			add_action( 'admin_init', array( $this, 'init_settings' ) );
 			add_action( $menu_hook, array( $this, 'init_menu' ) );
 
@@ -52,10 +55,15 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 		public function init_settings() {
 			register_setting( 'wp_encrypt_settings', 'wp_encrypt_settings', array( $this, 'validate_settings' ) );
-			add_settings_section( 'wp_encrypt_settings', __( 'Settings', 'wp-encrypt' ), array( $this, 'render_settings_description' ), self::PAGE_SLUG );
+
+			add_settings_section( 'wp_encrypt_settings', __( 'Account Settings', 'wp-encrypt' ), array( $this, 'render_settings_description' ), self::PAGE_SLUG );
 			add_settings_field( 'organization', __( 'Organization Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'organization' ) );
 			add_settings_field( 'country_name', __( 'Country Name', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'country_name' ) );
 			add_settings_field( 'country_code', __( 'Country Code', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'country_code' ) );
+
+			add_settings_section( 'wp_encrypt_additional_settings', __( 'Additional Settings', 'wp-encrypt' ), '__return_false', self::PAGE_SLUG );
+			add_settings_field( 'show_warning', __( 'Expire Warnings', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'show_warning' ) );
+			add_settings_field( 'show_warning_days', __( 'Expire Warnings Trigger', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'show_warning_days' ) );
 		}
 
 		public function init_menu() {
@@ -112,14 +120,15 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 					margin-bottom: 40px;
 				}
 
-				.delete-button {
+				.remove {
 					margin-left: 6px;
 					line-height: 28px;
+					color: #aa0000;
 					text-decoration: none;
 				}
 
-				.delete-button:hover {
-					color: #f00;
+				.remove:hover {
+					color: #ff0000;
 					text-decoration: none;
 					border: none;
 				}
@@ -175,7 +184,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 							<?php endif; ?>
 							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), ( 'generate' === $primary ? 'primary' : 'secondary' ), 'submit', false, array( 'id' => 'generate-certificate-button' ) ); ?>
 							<?php if ( $has_certificate ) : ?>
-								<a id="revoke-certificate-button" class="delete-button" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
+								<a id="revoke-certificate-button" class="remove" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
 							<?php endif; ?>
 						</form>
 
@@ -200,12 +209,23 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		public function render_settings_field( $args = array() ) {
 			$value = Util::get_option( $args['id'] );
 
+			$type = 'text';
+
 			$more_args = '';
 			if ( 'country_code' === $args['id'] ) {
 				$more_args .= ' maxlength="2"';
+			} elseif ( 'show_warning' === $args['id'] ) {
+				$type = 'checkbox';
+				if ( $value ) {
+					$more_args .= ' checked="checked"';
+				}
+				$value = '1';
+			} elseif ( 'show_warning_days' === $args['id'] ) {
+				$type = 'number';
+				$more_args .= ' min="1" max="90" step="0"';
 			}
 
-			echo '<input type="text" id="' . $args['id'] . '" name="wp_encrypt_settings[' . $args['id'] . ']" value="' . $value . '"' . $more_args . ' />';
+			echo '<input type="' . $type . '" id="' . $args['id'] . '" name="wp_encrypt_settings[' . $args['id'] . ']" value="' . $value . '"' . $more_args . ' />';
 			switch ( $args['id'] ) {
 				case 'organization':
 					$description = __( 'The name of the organization behind this site.', 'wp-encrypt' );
@@ -216,6 +236,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				case 'country_code':
 					$description = __( 'The two-letter country code for the country specified above.', 'wp-encrypt' );
 					break;
+				case 'show_warning':
+					$description = __( 'Show a warning across the admin when the certificate is close to expire?', 'wp-encrypt' );
+					break;
+				case 'show_warning_days':
+					$description = __( 'Specify the amount of days that should trigger the warning to show.', 'wp-encrypt' );
+					break;
 				default:
 			}
 			if ( isset( $description ) ) {
@@ -223,11 +249,51 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			}
 		}
 
+		public function maybe_show_expire_warning() {
+			if ( ! Util::get_option( 'show_warning' ) ) {
+				return;
+			}
+
+			if ( ! current_user_can( 'manage_certificates' ) ) {
+				return;
+			}
+
+			$certificate_registration_info = Util::get_registration_info( 'certificate' );
+			if ( ! isset( $certificate_registration_info['_wp_time'] ) ) {
+				return;
+			}
+
+			$expire = strtotime( $certificate_registration_info['_wp_time'] ) + 90 * DAY_IN_SECONDS;
+			$now = current_time( 'timestamp' );
+
+			$diff = absint( ( $expire - $now ) / DAY_IN_SECONDS );
+
+			$trigger = Util::get_option( 'show_warning_days' );
+			if ( $diff > $trigger ) {
+				return;
+			}
+
+			if ( 'network' === $this->context ) {
+				$url = network_admin_url( 'settings.php?page=wp_encrypt' );
+			} else {
+				$url = admin_url( 'options-general.php?page=wp_encrypt' );
+			}
+
+			?>
+			<div id="wp-encrypt-expire-warning" class="notice notice-warning">
+				<p><?php printf( __( 'The Let&apos;s Encrypt certificate will expire in %1$s days. Please renew it soon <a href="%2$s">here</a>.', 'wp-encrypt' ), number_format_i18n( $diff ), $url ); ?></p>
+			</div>
+			<?php
+		}
+
 		public function validate_settings( $options = array() ) {
 			$options = array_map( 'strip_tags', array_map( 'trim', $options ) );
 
 			if ( isset( $options['country_code'] ) ) {
 				$options['country_code'] = strtoupper( substr( $options['country_code'], 0, 2 ) );
+			}
+			if ( isset( $options['show_warning_days'] ) ) {
+				$options['show_warning_days'] = absint( $options['show_warning_days'] );
 			}
 			return $options;
 		}
