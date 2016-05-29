@@ -8,6 +8,8 @@
 namespace WPENC;
 
 use WPENC\Core\Util as CoreUtil;
+use WPENC\Core\Certificate as Certificate;
+use WPENC\Core\KeyPair as KeyPair;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die();
@@ -74,7 +76,36 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				<?php
 			}
 
+			$registration_info = Util::get_registration_info();
+
+			$account_registration_timestamp = false;
+			$certificate_generation_timestamp = false;
+			$site_domains = array();
+
+			if ( isset( $registration_info['account'] ) ) {
+				$account_registration_timestamp = strtotime( $registration_info['account']['_wp_time'] );
+				unset( $registration_info['account'] );
+			}
+
+			if ( 0 < count( $registration_info ) ) {
+				$first_key = key( $registration_info );
+				$certificate_generation_timestamp = strtotime( $registration_info[ $first_key ]['_wp_time'] );
+				if ( isset( $registration_info[ $first_key ]['domains'] ) ) {
+					$site_domains = $registration_info[ $first_key ]['domains'];
+				}
+			}
+
+			$has_certificate = 0 < count( $site_domains );
+
 			$form_action = 'network' === $this->context ? 'settings.php' : 'options.php';
+
+			$primary = 'save';
+			if ( Util::get_option( 'valid' ) ) {
+				$primary = 'register';
+				if ( Util::can_generate_certificate() ) {
+					$primary = 'generate';
+				}
+			}
 
 			?>
 			<style type="text/css">
@@ -100,7 +131,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				<form class="wp-encrypt-form" method="post" action="<?php echo $form_action; ?>">
 					<?php settings_fields( 'wp_encrypt_settings' ); ?>
 					<?php do_settings_sections( self::PAGE_SLUG ); ?>
-					<?php submit_button( '', 'primary large', 'submit', false ); ?>
+					<?php submit_button( '', ( 'save' === $primary ? 'primary' : 'secondary' ) . ' large', 'submit', false ); ?>
 				</form>
 
 				<?php if ( Util::get_option( 'valid' ) ) : ?>
@@ -109,9 +140,13 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 					<form class="wp-encrypt-form" method="post" action="<?php echo $form_action; ?>">
 						<p class="description">
 							<?php _e( 'By clicking on this button, you will register an account for the above organization with Let&apos;s Encrypt.', 'wp-encrypt' ); ?>
+							<?php if ( $account_registration_timestamp ) : ?>
+								<br />
+								<?php printf( __( 'Your account was registered on %1$s at %2$s.', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $account_registration_timestamp ), date_i18n( get_option( 'time_format' ), $account_registration_timestamp ) ); ?>
+							<?php endif; ?>
 						</p>
 						<?php $this->action_post_fields( 'wpenc_register_account' ); ?>
-						<?php submit_button( __( 'Register Account', 'wp-encrypt' ), 'secondary', 'submit', false, array( 'id' => 'register-account-button' ) ); ?>
+						<?php submit_button( __( 'Register Account', 'wp-encrypt' ), ( 'register' === $primary ? 'primary' : 'secondary' ), 'submit', false, array( 'id' => 'register-account-button' ) ); ?>
 					</form>
 
 					<?php if ( Util::can_generate_certificate() ) : ?>
@@ -123,6 +158,14 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 								<?php if ( 'network' === $this->context ) : ?>
 									<?php _e( 'The certificate will be valid for all the sites in your network by default.', 'wp-encrypt' ); ?>
 								<?php endif; ?>
+								<?php if ( $certificate_generation_timestamp ) : ?>
+									<br />
+									<?php if ( 'network' === $this->context && 0 < count( $site_domains ) ) : ?>
+										<?php printf( __( 'Your certificate was last generated on %1$s at %2$s for the following domains: %3$s', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $certificate_generation_timestamp ), date_i18n( get_option( 'time_format' ), $certificate_generation_timestamp ), implode( ', ' $site_domains ) ); ?>
+									<?php else : ?>
+										<?php printf( __( 'Your certificate was last generated on %1$s at %2$s.', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $certificate_generation_timestamp ), date_i18n( get_option( 'time_format' ), $certificate_generation_timestamp ) ); ?>
+									<?php endif; ?>
+								<?php endif; ?>
 							</p>
 							<?php $this->action_post_fields( 'wpenc_generate_certificate' ); ?>
 							<?php if ( App::is_multinetwork() ) : ?>
@@ -131,18 +174,22 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 									<span><?php _e( 'Generate a global certificate for all networks? This will ensure that all sites in your entire WordPress setup are covered.', 'wp-encrypt' ); ?></span>
 								</p>
 							<?php endif; ?>
-							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), 'secondary', 'submit', false, array( 'id' => 'generate-certificate-button' ) ); ?>
-							<a id="revoke-certificate-button" class="delete-button" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
+							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), ( 'generate' === $primary ? 'primary' : 'secondary' ), 'submit', false, array( 'id' => 'generate-certificate-button' ) ); ?>
+							<?php if ( $has_certificate ) : ?>
+								<a id="revoke-certificate-button" class="delete-button" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
+							<?php endif; ?>
 						</form>
+
+						<?php $this->render_instructions(); ?>
 					<?php endif; ?>
 				<?php endif; ?>
 			</div>
 			<?php
 
 			// for AJAX
-			if ( CoreUtil::needs_filesystem_credentials() ) {
+			/*if ( CoreUtil::needs_filesystem_credentials() ) {
 				wp_print_request_filesystem_credentials_modal();
-			}
+			}*/
 		}
 
 		public function render_settings_description() {
@@ -207,6 +254,115 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$url = add_query_arg( 'action', $action, $url );
 			$url = wp_nonce_url( $url, 'wp_encrypt_action' );
 			return $url;
+		}
+
+		protected function render_instructions() {
+			global $is_apache, $is_nginx;
+
+			$site_domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
+
+			$site_dir = CoreUtil::detect_base( 'path' );
+
+			$certificate_dirs = array(
+				'base'	=> CoreUtil::get_letsencrypt_certificates_dir_path() . '/' . $site_domain,
+			);
+			$certificate_dirs['cert'] = $certificate_dirs['base'] . '/' . Certificate::CERT_NAME;
+			$certificate_dirs['chain'] = $certificate_dirs['base'] . '/' . Certificate::CHAIN_NAME;
+			$certificate_dirs['fullchain'] = $certificate_dirs['base'] . '/' . Certificate::FULLCHAIN_NAME;
+			$certificate_dirs['key'] = $certificate_dirs['base'] . '/' . KeyPair::PRIVATE_NAME;
+
+			?>
+			<h3><?php _e( 'Setup', 'wp-encrypt' ); ?></h3>
+
+			<p><?php _e( 'In order to use the certificate you acquired, you need to configure SSL and set the paths to the certificate and the private key in your server configuration.', 'wp-encrypt' ); ?></p>
+
+			<?php if ( $is_apache ) : ?>
+				<?php $this->render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ); ?>
+			<?php elseif ( $is_nginx ) : ?>
+				<?php $this->render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ); ?>
+			<?php else : ?>
+				<h4><?php _e( 'Certificate & Key locations', 'wp-encrypt' ); ?></h4>
+				<ul>
+					<li><?php printf( __( 'Certificate: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['cert'] . '</code>' ); ?></li>
+					<li><?php printf( __( 'Certificate Chain: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['chain'] . '</code>' ); ?></li>
+					<li><?php printf( __( 'Certificate Full Chain: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['fullchain'] . '</code>' ); ?></li>
+					<li><?php printf( __( 'Private Key: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['key'] . '</code>' ); ?></li>
+				</ul>
+			<?php endif; ?>
+			<?php
+		}
+
+		protected function render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ) {
+			$config = '<VirtualHost 192.168.0.1:443>
+DocumentRoot ' . untrailingslashit( $site_dir ) . '
+ServerName ' . $site_domain . '
+SSLEngine on
+SSLCertificateFile ' . $certificate_dirs['cert'] . '
+SSLCertificateKeyFile ' . $certificate_dirs['key'] . '
+SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
+</VirtualHost>
+'; ?>
+			<ul>
+				<li>
+					<strong><?php _e( 'Detect which Apache config file to edit.', 'wp-encrypt' ); ?></strong>
+					<br />
+					<?php printf( __( 'Usually this file can be found at either %1$s or %2$s.', 'wp-encrypt' ), '<code>/etc/httpd/httpd.conf</code>', '<code>/etc/apache2/apache2.conf</code>' ); ?>
+					<?php printf( __( 'In particular, you need to look for a file that contains multiple %s blocks.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?>
+					<br />
+					<?php printf( __( 'A good method to detect the file on Linux machines is to use the command %s (the last argument should be the base directory for your Apache installation).', 'wp-encrypt' ), '<code>grep -i -r "SSLCertificateFile" /etc/httpd/</code>' ); ?>
+				</li>
+				<li>
+					<strong><?php printf( __( 'Find the %s block to configure.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?></strong>
+					<br />
+					<?php _e( 'You need to find the block that is used to configure your WordPress site. If you want your site to be accessible through both HTTP and HTTPS, copy the block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
+				</li>
+				<li>
+					<strong><?php printf( __( 'Configure your %s block with the certificate.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?></strong>
+					<br />
+					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
+					<br />
+					<textarea class="code" readonly="readonly" cols="100" rows="8">
+						<?php echo esc_textarea( $config ); ?>
+					</textarea>
+				</li>
+			</ul>
+			<?php
+		}
+
+		protected function render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ) {
+			$config = 'server {
+
+	listen   443;
+
+	ssl on;
+	ssl_certificate ' . $certificate_dirs['fullchain'] . '
+	ssl_certificate_key ' . $certificate_dirs['key'] . ';
+
+	server_name ' . $site_domain . ';
+	location / {
+		root   ' . trailingslashit( $site_dir ) . ';
+		index  index.php;
+	}
+
+}
+'; ?>
+			<ul>
+				<li>
+					<strong><?php _e( 'Find the virtual host you want to configure in your Nginx virtual hosts file.', 'wp-encrypt' ); ?></strong>
+					<br />
+					<?php _e( 'If you want your site to be accessible through both HTTP and HTTPS, copy the block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
+				</li>
+				<li>
+					<strong><?php _e( 'Configure your virtual host block with the certificate.', 'wp-encrypt' ); ?></strong>
+					<br />
+					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
+					<br />
+					<textarea class="code" readonly="readonly" cols="100" rows="8">
+						<?php echo esc_textarea( $config ); ?>
+					</textarea>
+				</li>
+			</ul>
+			<?php
 		}
 	}
 }

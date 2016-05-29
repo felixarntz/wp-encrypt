@@ -142,7 +142,14 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 				return new WP_Error( 'new_cert_fail', __( 'No certificates generated.', 'wp-encrypt' ) );
 			}
 
-			return $certificate->set( $certs );
+			$status = $certificate->set( $certs );
+			if ( is_wp_error( $status ) ) {
+				return $status;
+			}
+
+			return array(
+				'domains'	=> $all_domains,
+			);
 		}
 
 		public function revoke_certificate( $domain ) {

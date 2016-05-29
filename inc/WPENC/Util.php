@@ -61,7 +61,7 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 
 		public static function get_registration_info( $field ) {
 			if ( 'account' !== $field && ! is_numeric( $field ) ) {
-				return '';
+				return get_site_option( 'wp_encrypt_registration', array() );
 			}
 			$options = get_site_option( 'wp_encrypt_registration', array() );
 			if ( ! isset( $options[ $field ] ) || ! isset( $options[ $field ]['_wp_time'] ) ) {
@@ -72,9 +72,17 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 
 		public static function delete_registration_info( $fields ) {
 			$options = get_site_option( 'wp_encrypt_registration', array() );
-			foreach ( (array) $fields as $field ) {
-				if ( isset( $options[ $field ] ) ) {
-					unset( $options[ $field ] );
+			if ( 'certificate' === $fields ) {
+				if ( isset( $options['account'] ) ) {
+					$options = array( 'account' => $options['account'] );
+				} else {
+					$options = array();
+				}
+			} else {
+				foreach ( (array) $fields as $field ) {
+					if ( isset( $options[ $field ] ) ) {
+						unset( $options[ $field ] );
+					}
 				}
 			}
 			return update_site_option( 'wp_encrypt_registration', $options );
@@ -84,13 +92,19 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			return self::get_registration_info( 'account' ) && self::get_option( 'valid' );
 		}
 
-		public static function get_current_site_id() {
+		public static function get_site_id() {
 			return get_current_blog_id();
 		}
 
-		public static function get_current_network_site_ids() {
+		public static function get_network_site_ids( $global = false ) {
 			$ids = array();
-			foreach ( wp_get_sites() as $site ) {
+
+			$args = array();
+			if ( $global ) {
+				$args['network_id'] = 0;
+			}
+
+			foreach ( wp_get_sites( $args ) as $site ) {
 				$ids[] = $site['blog_id'];
 			}
 

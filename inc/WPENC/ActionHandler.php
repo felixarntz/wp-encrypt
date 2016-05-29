@@ -86,14 +86,11 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return $response;
 			}
 
-			$ids = $network_wide ? Util::get_current_network_site_ids() : Util::get_current_site_id();
+			$ids = $network_wide ? Util::get_network_site_ids( $global ) : Util::get_site_id();
 
-			Util::set_registration_info( $ids, array() );
+			Util::set_registration_info( $ids, $response );
 
-			$site_domains = $addon_domains;
-			array_unshift( $site_domains, $domain );
-
-			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $site_domains ) );
+			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $response['domains'] ) );
 		}
 
 		protected function revoke_certificate( $data = array(), $network_wide = false ) {
@@ -110,9 +107,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return $response;
 			}
 
-			$ids = $network_wide ? Util::get_current_network_site_ids() : Util::get_current_site_id();
-
-			Util::delete_registration_info( $ids );
+			Util::delete_registration_info( 'certificate' );
 
 			return __( 'Certificate revoked.', 'wp-encrypt' );
 		}

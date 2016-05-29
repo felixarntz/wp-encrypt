@@ -95,6 +95,24 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			return self::detect_base( 'url' ) . self::get_letsencrypt_challenges_relative_dir();
 		}
 
+		public static function detect_base( $mode = 'url' ) {
+			$content_parts = explode( '/', str_replace( array( 'https://', 'http://' ), '', rtrim( WP_CONTENT_URL, '/' ) ) );
+			$dirname_up = count( $content_parts ) - 1;
+
+			$base = WP_CONTENT_URL;
+			if ( 'path' === $mode ) {
+				$base = WP_CONTENT_DIR;
+			}
+
+			$base = rtrim( $base, '/' );
+
+			for ( $i = 0; $i < $dirname_up; $i++ ) {
+				$base = dirname( $base );
+			}
+
+			return $base;
+		}
+
 		public static function maybe_create_letsencrypt_certificates_dir() {
 			return self::maybe_create_dir( self::get_letsencrypt_certificates_dir_path() );
 		}
@@ -120,24 +138,6 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 
 		private static function get_letsencrypt_challenges_relative_dir() {
 			return '/.well-known/acme-challenge';
-		}
-
-		private static function detect_base( $mode = 'url' ) {
-			$content_parts = explode( '/', str_replace( array( 'https://', 'http://' ), '', rtrim( WP_CONTENT_URL, '/' ) ) );
-			$dirname_up = count( $content_parts ) - 1;
-
-			$base = WP_CONTENT_URL;
-			if ( 'path' === $mode ) {
-				$base = WP_CONTENT_DIR;
-			}
-
-			$base = rtrim( $base, '/' );
-
-			for ( $i = 0; $i < $dirname_up; $i++ ) {
-				$base = dirname( $base );
-			}
-
-			return $base;
 		}
 
 		public static function base64_url_encode( $data ) {
