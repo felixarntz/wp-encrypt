@@ -88,7 +88,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			}
 
 			if ( isset( $certificate_registration_info['_wp_time'] ) ) {
-				$certificate_generation_timestamp = strtotime( $certificate_registration_info );
+				$certificate_generation_timestamp = strtotime( $certificate_registration_info['_wp_time'] );
 				if ( isset( $certificate_registration_info['domains'] ) ) {
 					$site_domains = $certificate_registration_info['domains'];
 				}
@@ -322,9 +322,7 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 					<br />
 					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
 					<br />
-					<textarea class="code" readonly="readonly" cols="100" rows="9">
-						<?php echo esc_textarea( $config ); ?>
-					</textarea>
+					<textarea class="code" readonly="readonly" cols="100" rows="9"><?php echo esc_textarea( $config ); ?></textarea>
 				</li>
 			</ul>
 			<?php
@@ -358,9 +356,7 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 					<br />
 					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
 					<br />
-					<textarea class="code" readonly="readonly" cols="100" rows="16">
-						<?php echo esc_textarea( $config ); ?>
-					</textarea>
+					<textarea class="code" readonly="readonly" cols="100" rows="16"><?php echo esc_textarea( $config ); ?></textarea>
 				</li>
 			</ul>
 			<?php
