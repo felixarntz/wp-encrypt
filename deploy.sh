@@ -98,7 +98,7 @@ bower.json
 composer.json
 composer.lock
 deploy.sh
-Gruntfile.js
+gulpfile.js
 package.json
 phpunit.xml
 README.md

@@ -9,6 +9,7 @@
     "plugin",
     "lets encrypt",
     "ssl",
+    "certificates",
     "https",
     "free ssl"
   ],
@@ -17,7 +18,7 @@
     {
       "name": "Felix Arntz",
       "email": "felix-arntz@leaves-and-love.net",
-      "homepage": "http://leaves-and-love.net",
+      "homepage": "https://leaves-and-love.net",
       "role": "Developer"
     }
   ],

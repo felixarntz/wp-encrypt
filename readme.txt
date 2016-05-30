@@ -2,17 +2,16 @@
 
 Plugin Name:       WP Encrypt
 Plugin URI:        https://wordpress.org/plugins/wp-encrypt/
-Author URI:        http://leaves-and-love.net
 Author:            Felix Arntz
-Donate link:       http://leaves-and-love.net/wordpress-plugins/
+Author URI:        https://leaves-and-love.net
 Contributors:      flixos90
-Requires at least: 4.2 
-Tested up to:      4.4.1
+Requires at least: 4.2
+Tested up to:      4.5.2
 Stable tag:        0.5.0
 Version:           0.5.0
-License:           GPL v3
+License:           GNU General Public License v3
 License URI:       http://www.gnu.org/licenses/gpl-3.0.html
-Tags:              wordpress, plugin, lets encrypt, ssl, https, free ssl
+Tags:              lets encrypt, ssl, certificates, https, free ssl
 
 Generate and manage SSL certificates for your WordPress sites for free with this Let's Encrypt client.
 
@@ -24,7 +23,7 @@ Using the plugin, you can quickly acquire a new certificate for your site. Once 
 
 The Let's Encrypt service only provides certificates that are valid for 90 days. However, you can always renew them - no limitations there. However, you don't even need to do that yourself, the plugin will automatically renew existing certificates before they expire.
 
-The plugin is also fully compatible with multisite.
+The plugin is fully compatible with Multisite and Multinetwork.
 
 = Requirements =
 

@@ -1,8 +1,11 @@
 <?php
 /**
+ * WPENC\Core\Certificate class
+ *
  * @package WPENC
- * @version 0.5.0
+ * @subpackage Core
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
+ * @since 0.5.0
  */
 
 namespace WPENC\Core;
