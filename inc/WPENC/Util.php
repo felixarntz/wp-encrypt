@@ -40,6 +40,8 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 					case 'country_code':
 						return substr( get_locale(), 3, 2 );
 					case 'valid':
+					case 'include_all_networks':
+					case 'autogenerate_certificate':
 					case 'show_warning':
 						return false;
 					case 'show_warning_days':
@@ -51,6 +53,8 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 
 			switch ( $field ) {
 				case 'valid':
+				case 'include_all_networks':
+				case 'autogenerate_certificate':
 				case 'show_warning':
 					return (bool) $options[ $field ];
 				case 'show_warning_days':
@@ -160,6 +164,29 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 			}
 
 			return $addon_domains;
+		}
+
+		public static function schedule_autogenerate_event( $generate_timestamp = null, $reschedule = false ) {
+			$timestamp = wp_next_scheduled( 'wp_encrypt_generate_certificate' );
+			if ( $timestamp && $reschedule ) {
+				wp_unschedule_event( $timestamp, 'wp_encrypt_generate_certificate' );
+				$timestamp = false;
+			}
+
+			if ( ! $timestamp ) {
+				if ( ! $generate_timestamp ) {
+					$generate_timestamp = current_time( 'timestamp' );
+				}
+				$timestamp = absint( $generate_timestamp ) + 85 * DAY_IN_SECONDS;
+				wp_schedule_single_event( $timestamp, 'wp_encrypt_generate_certificate' );
+			}
+		}
+
+		public static function unschedule_autogenerate_event() {
+			$timestamp = wp_next_scheduled( 'wp_encrypt_generate_certificate' );
+			if ( $timestamp ) {
+				wp_unschedule_event( $timestamp, 'wp_encrypt_generate_certificate' );
+			}
 		}
 	}
 }

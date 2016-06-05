@@ -64,6 +64,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			add_settings_field( 'country_code', __( 'Country Code', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_settings', array( 'id' => 'country_code' ) );
 
 			add_settings_section( 'wp_encrypt_additional_settings', __( 'Additional Settings', 'wp-encrypt' ), '__return_false', self::PAGE_SLUG );
+			if ( App::is_multinetwork() ) {
+				add_settings_field( 'include_all_networks', __( 'Global SSL Certificate', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'include_all_networks' ) );
+			}
+			if ( ! CoreUtil::needs_filesystem_credentials() ) {
+				add_settings_field( 'autogenerate_certificate', __( 'Auto-generate Certificate', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'autogenerate_certificate' ) );
+			}
 			add_settings_field( 'show_warning', __( 'Expire Warnings', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'show_warning' ) );
 			add_settings_field( 'show_warning_days', __( 'Expire Warnings Trigger', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'show_warning_days' ) );
 		}
@@ -178,12 +184,6 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 								<?php endif; ?>
 							</p>
 							<?php $this->action_post_fields( 'wpenc_generate_certificate' ); ?>
-							<?php if ( App::is_multinetwork() ) : ?>
-								<p>
-									<input type="checkbox" id="include_all_networks" name="include_all_networks" value="1" />
-									<span><?php _e( 'Generate a global certificate for all networks? This will ensure that all sites in your entire WordPress setup are covered.', 'wp-encrypt' ); ?></span>
-								</p>
-							<?php endif; ?>
 							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), ( 'generate' === $primary ? 'primary' : 'secondary' ), 'submit', false, array( 'id' => 'generate-certificate-button' ) ); ?>
 							<?php if ( $has_certificate ) : ?>
 								<a id="revoke-certificate-button" class="remove" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
@@ -212,19 +212,25 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$value = Util::get_option( $args['id'] );
 
 			$type = 'text';
-
 			$more_args = '';
-			if ( 'country_code' === $args['id'] ) {
-				$more_args .= ' maxlength="2"';
-			} elseif ( 'show_warning' === $args['id'] ) {
-				$type = 'checkbox';
-				if ( $value ) {
-					$more_args .= ' checked="checked"';
-				}
-				$value = '1';
-			} elseif ( 'show_warning_days' === $args['id'] ) {
-				$type = 'number';
-				$more_args .= ' min="1" max="90" step="0"';
+
+			switch ( $args['id'] ) {
+				case 'country_code':
+					$more_args .= ' maxlength="2"';
+					break;
+				case 'include_all_networks':
+				case 'autogenerate_certificate':
+				case 'show_warning':
+					$type = 'checkbox';
+					if ( $value ) {
+						$more_args .= ' checked="checked"';
+					}
+					$value = '1';
+					break;
+				case 'show_warning_days':
+					$type = 'number';
+					$more_args .= ' min="1" max="90" step="1"';
+					break;
 			}
 
 			echo '<input type="' . $type . '" id="' . $args['id'] . '" name="wp_encrypt_settings[' . $args['id'] . ']" value="' . $value . '"' . $more_args . ' />';
@@ -237,6 +243,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 					break;
 				case 'country_code':
 					$description = __( 'The two-letter country code for the country specified above.', 'wp-encrypt' );
+					break;
+				case 'include_all_networks':
+					$description = __( 'Generate a global certificate for all networks? This will ensure that all sites in your entire WordPress setup are covered.', 'wp-encrypt' );
+					break;
+				case 'autogenerate_certificate':
+					$description = __( 'Automatically regenerate the certificate prior to expiration? A Let&apos;s Encrypt certificate is valid for 90 days.', 'wp-encrypt' );
 					break;
 				case 'show_warning':
 					$description = __( 'Show a warning across the admin when the certificate is close to expire?', 'wp-encrypt' );
@@ -281,9 +293,15 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				$url = admin_url( 'options-general.php?page=wp_encrypt' );
 			}
 
+			if ( Util::get_option( 'autogenerate_certificate' ) ) {
+				$text = _n( 'The Let&apos;s Encrypt certificate will expire in %1$s day. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', 'The Let&apos;s Encrypt certificate will expire in %1$s days. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
+			} else {
+				$text = _n( 'The Let&apos;s Encrypt certificate will expire in %1$s day. Please renew it soon <a href="%2$s">here</a>.', 'The Let&apos;s Encrypt certificate will expire in %1$s days. Please renew it soon <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
+			}
+
 			?>
 			<div id="wp-encrypt-expire-warning" class="notice notice-warning">
-				<p><?php printf( __( 'The Let&apos;s Encrypt certificate will expire in %1$s days. Please renew it soon <a href="%2$s">here</a>.', 'wp-encrypt' ), number_format_i18n( $diff ), $url ); ?></p>
+				<p><?php printf( $text, number_format_i18n( $diff ), $url ); ?></p>
 			</div>
 			<?php
 		}
@@ -297,6 +315,16 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			if ( isset( $options['show_warning_days'] ) ) {
 				$options['show_warning_days'] = absint( $options['show_warning_days'] );
 			}
+
+			if ( isset( $options['autogenerate_certificate'] ) && $options['autogenerate_certificate'] ) {
+				$certificate_registration_info = Util::get_registration_info( 'certificate' );
+				if ( isset( $certificate_registration_info['_wp_time'] ) ) {
+					Util::schedule_autogenerate_event( strtotime( $certificate_registration_info['_wp_time'] ) );
+				}
+			} else {
+				Util::unschedule_autogenerate_event();
+			}
+
 			return $options;
 		}
 

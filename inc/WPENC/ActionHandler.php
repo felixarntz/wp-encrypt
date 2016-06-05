@@ -35,6 +35,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			foreach ( $this->actions as $action ) {
 				add_action( 'admin_action_wpenc_' . $action, array( $this, 'request' ) );
 				add_action( 'wp_ajax_wpenc_' . $action, array( $this, 'ajax_request' ) );
+				add_action( 'wp_encrypt_' . $action, array( $this, 'cron_request' ) );
 			}
 		}
 
@@ -43,7 +44,11 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 		}
 
 		public function ajax_request() {
-			$this->handle_request( true );
+			$this->handle_request( 'ajax' );
+		}
+
+		public function cron_request() {
+			$this->handle_request( 'cron' );
 		}
 
 		protected function register_account( $data = array(), $network_wide = false ) {
@@ -73,7 +78,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
 			}
 
-			$global = isset( $data['include_all_networks'] ) && $data['include_all_networks'];
+			$global = Util::get_option( 'include_all_networks' );
 
 			$domain = $network_wide ? Util::get_network_domain() : Util::get_site_domain();
 			$addon_domains = $network_wide ? Util::get_network_addon_domains( null, $global ) : array();
@@ -89,6 +94,10 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			}
 
 			Util::set_registration_info( 'certificate', $response );
+
+			if ( Util::get_option( 'autogenerate_certificate' ) ) {
+				Util::schedule_autogenerate_event( current_time( 'timestamp' ), true );
+			}
 
 			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $response['domains'] ) );
 		}
@@ -108,6 +117,10 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			}
 
 			Util::delete_registration_info( 'certificate' );
+
+			if ( Util::get_option( 'autogenerate_certificate' ) ) {
+				Util::unschedule_autogenerate_event();
+			}
 
 			return __( 'Certificate revoked.', 'wp-encrypt' );
 		}
@@ -136,40 +149,66 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return CoreUtil::setup_filesystem( $url, $extra_fields );
 		}
 
-		protected function handle_request( $ajax = false ) {
-			$network_wide = $this->is_network_request();
+		protected function handle_request( $mode = 'admin' ) {
+			$ajax = false;
+			$prefix = 'admin_action_wpenc_';
+			$args = $_REQUEST;
 
-			$prefix = $ajax ? 'wp_ajax_wpenc_' : 'admin_action_wpenc_';
+			switch ( $mode ) {
+				case 'cron':
+					$prefix = 'wp_encrypt_';
+					$args = array(
+						'context'	=> is_multisite() ? 'network' : 'site',
+						'_wpnonce'	=> wp_create_nonce( 'wp_encrypt_action' ),
+					);
+					break;
+				case 'ajax':
+					$prefix = 'wp_ajax_wpenc_';
+					$ajax = true;
+					break;
+			}
+
+			$network_wide = $this->is_network_request( $args );
+
 			$action = str_replace( $prefix, '', current_action() );
 
-			$valid = $this->check_request( $action, $ajax, $network_wide );
+			$valid = $this->check_request( $action, $mode, $args );
 			if ( is_wp_error( $valid ) ) {
+				if ( 'cron' === $mode ) {
+					return;
+				}
 				$this->handle_error( $valid, $ajax, $network_wide );
 			}
 
-			$response = call_user_func( array( $this, $action ), $_REQUEST, $network_wide );
+			$response = call_user_func( array( $this, $action ), $args, $network_wide );
 			if ( is_wp_error( $response ) ) {
+				if ( 'cron' === $mode ) {
+					return;
+				}
 				$this->handle_error( $response, $ajax, $network_wide );
 			}
 
+			if ( 'cron' === $mode ) {
+				return;
+			}
 			$this->handle_success( $response, $ajax, $network_wide );
 		}
 
-		protected function is_network_request() {
-			return is_network_admin() || isset( $_REQUEST['context'] ) && 'network' === $_REQUEST['context'];
+		protected function is_network_request( $args ) {
+			return is_network_admin() || isset( $args['context'] ) && 'network' === $args['context'];
 		}
 
-		protected function check_request( $action, $ajax = false, $network_wide = false ) {
-			if ( ! isset( $_REQUEST['_wpnonce'] ) ) {
+		protected function check_request( $action, $mode = 'admin', $args = array() ) {
+			if ( ! isset( $args['_wpnonce'] ) ) {
 				return new WP_Error( 'nonce_missing', __( 'Missing nonce.', 'wp-encrypt' ) );
 			}
 
-			$status = $ajax ? check_ajax_referer( 'wp_encrypt_ajax', '_wpnonce', false ) : wp_verify_nonce( $_REQUEST['_wpnonce'], 'wp_encrypt_action' );
+			$status = 'ajax' === $mode ? check_ajax_referer( 'wp_encrypt_ajax', '_wpnonce', false ) : wp_verify_nonce( $args['_wpnonce'], 'wp_encrypt_action' );
 			if ( ! $status ) {
 				return new WP_Error( 'nonce_invalid', __( 'Invalid nonce.', 'wp-encrypt' ) );
 			}
 
-			if ( ! current_user_can( 'manage_certificates' ) ) {
+			if ( 'cron' !== $mode && ! current_user_can( 'manage_certificates' ) ) {
 				return new WP_Error( 'capabilities_lacking', __( 'Lacking required capabilities.', 'wp-encrypt' ) );
 			}
 
