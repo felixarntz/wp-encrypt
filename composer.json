@@ -1,7 +1,7 @@
 {
   "name": "felixarntz/wp-encrypt",
   "description": "Generate and manage SSL certificates for your WordPress sites for free with this Let's Encrypt client.",
-  "version": "0.5.0",
+  "version": "1.0.0-beta.1",
   "license": "GPL-3.0",
   "type": "wordpress-plugin",
   "keywords": [
