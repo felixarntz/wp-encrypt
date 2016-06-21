@@ -4,7 +4,7 @@
  *
  * @package WPENC
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC;
@@ -19,18 +19,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 	/**
-	 * This class handles actions for both regular POST requests and AJAX requests.
+	 * This class handles actions for regular, AJAX and Cron requests.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	class ActionHandler {
+		/**
+		 * The actions handled by this class.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var array
+		 */
 		protected $actions = array(
 			'register_account',
 			'generate_certificate',
 			'revoke_certificate',
 		);
 
+		/**
+		 * Adds the required action hooks.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function run() {
 			foreach ( $this->actions as $action ) {
 				add_action( 'admin_action_wpenc_' . $action, array( $this, 'request' ) );
@@ -39,18 +51,48 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			}
 		}
 
+		/**
+		 * Action callback that handles a regular request.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function request() {
 			$this->handle_request();
 		}
 
+		/**
+		 * Action callback that handles an AJAX request.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function ajax_request() {
 			$this->handle_request( 'ajax' );
 		}
 
+		/**
+		 * Action callback that handles a Cron request.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function cron_request() {
 			$this->handle_request( 'cron' );
 		}
 
+		/**
+		 * Registers the account with Let's Encrypt.
+		 *
+		 * This method is called through one of the action callbacks.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param array $data         The request data for the action.
+		 * @param bool  $network_wide Whether this action should be performed network-wide.
+		 * @return string|WP_Error The success message or an error object.
+		 */
 		protected function register_account( $data = array(), $network_wide = false ) {
 			$filesystem_check = $this->maybe_request_filesystem_credentials( $network_wide );
 			if ( false === $filesystem_check ) {
@@ -68,6 +110,21 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return __( 'Account registered.', 'wp-encrypt' );
 		}
 
+		/**
+		 * Generates a certificate with Let's Encrypt.
+		 *
+		 * This method is called through one of the action callbacks.
+		 *
+		 * In a Multinetwork setup, a certificate can either be generated for only the current
+		 * network or for all networks.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param array $data         The request data for the action.
+		 * @param bool  $network_wide Whether this action should be performed network-wide.
+		 * @return string|WP_Error The success message or an error object.
+		 */
 		protected function generate_certificate( $data = array(), $network_wide = false ) {
 			if ( ! Util::can_generate_certificate() ) {
 				return new WP_Error( 'domain_cannot_sign', __( 'Domain cannot be signed. Either the account is not registered yet or the settings are not valid.', 'wp-encrypt' ) );
@@ -102,6 +159,18 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $response['domains'] ) );
 		}
 
+		/**
+		 * Revokes a certificate with Let's Encrypt.
+		 *
+		 * This method is called through one of the action callbacks.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param array $data         The request data for the action.
+		 * @param bool  $network_wide Whether this action should be performed network-wide.
+		 * @return string|WP_Error The success message or an error object.
+		 */
 		protected function revoke_certificate( $data = array(), $network_wide = false ) {
 			$filesystem_check = $this->maybe_request_filesystem_credentials( $network_wide );
 			if ( false === $filesystem_check ) {
@@ -125,6 +194,19 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return __( 'Certificate revoked.', 'wp-encrypt' );
 		}
 
+		/**
+		 * Requests filesystem credentials if necessary.
+		 *
+		 * The key files and certificates need to be stored on disk.
+		 * If the directories aren't writeable by WordPress, the user needs to manually enter
+		 * access keys (FTP, SSH, ...).
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param bool $network_wide Whether filesystem access is needed for a network-wide request.
+		 * @return bool Whether the filesystem was successfully set up.
+		 */
 		protected function maybe_request_filesystem_credentials( $network_wide = false ) {
 			if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
 				$credentials = array();
@@ -149,6 +231,17 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return CoreUtil::setup_filesystem( $url, $extra_fields );
 		}
 
+		/**
+		 * General action callback for any kind of request.
+		 *
+		 * It makes the necessary security nonce checks and sends the response in the
+		 * appropriate way.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $mode Either 'admin', 'ajax' or 'cron'. Default 'admin'.
+		 */
 		protected function handle_request( $mode = 'admin' ) {
 			$ajax = false;
 			$prefix = 'admin_action_wpenc_';
@@ -194,10 +287,35 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			$this->handle_success( $response, $ajax, $network_wide );
 		}
 
+		/**
+		 * Checks whether the current request is a network request.
+		 *
+		 * On WordPress < 4.6, it was not possible to make network-wide AJAX requests.
+		 * Therefore a context argument was used there.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param array $args Request data.
+		 * @return bool Whether this is a network request.
+		 */
 		protected function is_network_request( $args ) {
 			return is_network_admin() || isset( $args['context'] ) && 'network' === $args['context'];
 		}
 
+		/**
+		 * Checks whether this is a valid request.
+		 *
+		 * It verifies the security nonce, capabilities and action.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $action The action to perform.
+		 * @param string $mode   What kind of request this is.
+		 * @param array  $args   Request data.
+		 * @return bool|WP_Error Either true or an error object.
+		 */
 		protected function check_request( $action, $mode = 'admin', $args = array() ) {
 			if ( ! isset( $args['_wpnonce'] ) ) {
 				return new WP_Error( 'nonce_missing', __( 'Missing nonce.', 'wp-encrypt' ) );
@@ -219,6 +337,21 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			return true;
 		}
 
+		/**
+		 * Handles an error for any action.
+		 *
+		 * On regular requests, this method adds a settings error and redirects.
+		 * For AJAX requests, it sends the error JSON data.
+		 *
+		 * This method is not used for Cron requests.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param WP_Error $error        The current error object.
+		 * @param bool     $ajax         Whether this is an AJAX request.
+		 * @param bool     $network_wide Whether this is a network wide request.
+		 */
 		protected function handle_error( $error, $ajax = false, $network_wide = false ) {
 			if ( $ajax ) {
 				wp_send_json_error( $error->get_error_message() );
@@ -228,6 +361,21 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			$this->store_and_redirect( $network_wide );
 		}
 
+		/**
+		 * Handles successful execution for any action.
+		 *
+		 * On regular requests, this method adds a settings success message and redirects.
+		 * For AJAX requests, it sends the success JSON data.
+		 *
+		 * This method is not used for Cron requests.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $error        The current success message.
+		 * @param bool   $ajax         Whether this is an AJAX request.
+		 * @param bool   $network_wide Whether this is a network wide request.
+		 */
 		protected function handle_success( $message, $ajax = false, $network_wide = false ) {
 			if ( $ajax ) {
 				wp_send_json_success( $message );
@@ -237,6 +385,17 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			$this->store_and_redirect( $network_wide );
 		}
 
+		/**
+		 * Stores the current settings errors in a transient and redirects.
+		 *
+		 * This method is used at the end of regular action requests so that the result
+		 * of the action is displayed on the actual settings page.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param boolean $network_wide Whether this is a network wide request.
+		 */
 		protected function store_and_redirect( $network_wide = false ) {
 			$func = 'set_transient';
 			$query_arg = 'settings-updated';
@@ -251,6 +410,15 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			exit;
 		}
 
+		/**
+		 * Returns the URL to the WP Encrypt settings page.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param boolean $network_wide Whether this is a network wide request.
+		 * @return string The settings page URL (either for a regular site or a Multisite).
+		 */
 		protected function get_url( $network_wide = false ) {
 			if ( $network_wide ) {
 				return network_admin_url( 'settings.php?page=wp_encrypt' );

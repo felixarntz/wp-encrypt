@@ -4,7 +4,7 @@
  *
  * @package WPENC
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC;
@@ -17,15 +17,31 @@ if ( ! class_exists( 'WPENC\NetworkSettingsAPI' ) ) {
 	/**
 	 * This class implements a simple Settings API for the network admin.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * WordPress Core doesn't currently provide this.
+	 *
+	 * @since 1.0.0
 	 */
 	final class NetworkSettingsAPI {
+		/**
+		 * Adds the required action hooks.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function run() {
 			add_action( 'wpmuadminedit', array( $this, 'update_network_option' ) );
 			add_action( 'network_admin_notices', array( $this, 'network_options_head' ), 9999 );
 		}
 
+		/**
+		 * Updates network options for a network settings page.
+		 *
+		 * This method relies on the settings page to use the `settings_fields()` function, similarly
+		 * to regular WordPress settings pages.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function update_network_option() {
 			if ( ! isset( $_POST['option_page'] ) || ! isset( $_POST['action'] ) || 'update' !== $_POST['action'] ) {
 				return;
@@ -52,6 +68,12 @@ if ( ! class_exists( 'WPENC\NetworkSettingsAPI' ) ) {
 			exit;
 		}
 
+		/**
+		 * Makes sure that settings errors are printed appropriately for a network settings page.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function network_options_head() {
 			global $parent_file, $wp_settings_errors;
 

@@ -4,7 +4,7 @@
  *
  * @package WPENC
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC;
@@ -19,31 +19,38 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 	/**
 	 * This class initializes the plugin.
 	 *
-	 * It also triggers the action and filter to hook into and contains all API functions of the plugin.
-	 *
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	final class App extends Plugin {
 
 		/**
-		 * @since 0.5.0
-		 * @var array Holds the plugin data.
+		 * Holds the plugin data. This property is used by the parent class.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @static
+		 * @var array
 		 */
 		protected static $_args = array();
 
 		/**
-		 * @since 0.5.0
-		 * @var boolean Stores whether this is a multi network setup.
+		 * Stores whether this is a Multinetwork setup.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @static
+		 * @var bool
 		 */
 		protected static $is_multinetwork = null;
 
 		/**
-		 * Class constructor.
+		 * Constructor.
 		 *
 		 * This is protected on purpose since it is called by the parent class' singleton.
 		 *
-		 * @internal
-		 * @since 0.5.0
+		 * @since 1.0.0
+		 * @access protected
+		 *
 		 * @param array $args Array of class arguments passed by the plugin utility class.
 		 */
 		protected function __construct( $args ) {
@@ -51,12 +58,12 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		}
 
 		/**
-		 * The run() method.
+		 * Initializes the plugin and adds the required action hooks.
 		 *
-		 * This will initialize the plugin.
+		 * This method will automatically be invoked by the parent class.
 		 *
-		 * @internal
-		 * @since 0.5.0
+		 * @since 1.0.0
+		 * @access protected
 		 */
 		protected function run() {
 			$action_handler = new ActionHandler();
@@ -76,6 +83,18 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			$admin->run();
 		}
 
+		/**
+		 * Ensures that, on a regular site, the admin has the capabilities to manage certificates.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param array  $caps    The capabilities to return.
+		 * @param string $cap     The capability to be mapped.
+		 * @param int    $user_id The current user's ID.
+		 * @param array  $args    Additional arguments.
+		 * @return array The adjusted capabilities to return.
+		 */
 		public function map_meta_cap_non_multisite( $caps, $cap, $user_id, $args ) {
 			if ( 'manage_certificates' === $cap ) {
 				$caps = array( 'manage_options' );
@@ -84,10 +103,13 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		}
 
 		/**
-		 * Checks whether this is a multi network setup.
+		 * Checks whether this is a Multinetwork setup.
 		 *
-		 * @since 0.5.0
-		 * @return boolean
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @return bool Whether this is a Multinetwork setup.
 		 */
 		public static function is_multinetwork() {
 			if ( ! is_multisite() ) {
@@ -105,6 +127,18 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			return self::$is_multinetwork;
 		}
 
+		/**
+		 * Adds a link to the plugin settings page.
+		 *
+		 * This method is automatically invoked by the plugin loader class.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param array $links The existing plugin action links.
+		 * @return array The adjusted links.
+		 */
 		public static function filter_plugin_links( $links = array() ) {
 			if ( is_multisite() ) {
 				return self::filter_network_plugin_links( $links );
@@ -121,6 +155,18 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			return array_merge( $custom_links, $links );
 		}
 
+		/**
+		 * Adds a link to the plugin settings page in the network admin.
+		 *
+		 * This method is automatically invoked by the plugin loader class.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param array $links The existing plugin action links.
+		 * @return array The adjusted links.
+		 */
 		public static function filter_network_plugin_links( $links = array() ) {
 			if ( ! current_user_can( 'manage_certificates' ) ) {
 				return $links;

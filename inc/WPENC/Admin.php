@@ -4,7 +4,7 @@
  *
  * @package WPENC
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC;
@@ -21,22 +21,49 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 	/**
 	 * This class performs the necessary actions in the WordPress admin to generate the settings page.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * On a regular site, the settings page is in the regular admin, while on a Multisite, the
+	 * settings page is located in the network admin.
+	 *
+	 * @since 1.0.0
 	 */
 	class Admin {
+		/**
+		 * The page slug for the settings page.
+		 *
+		 * @since 1.0.0
+		 */
 		const PAGE_SLUG = 'wp_encrypt';
 
+		/**
+		 * Context for this settings page. Either 'site' or 'network'.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var string
+		 */
 		protected $context = 'site';
 
+		/**
+		 * Constructor.
+		 *
+		 * Sets the context for this settings page.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $context Either 'site' or 'network'. Default is 'site'.
+		 */
 		public function __construct( $context = 'site' ) {
 			$this->context = $context;
 		}
 
 		/**
-		 * Initialization method.
+		 * Adds the required action hooks.
 		 *
-		 * @since 0.5.0
+		 * Depending on the $context property, different hooks are used.
+		 *
+		 * @since 1.0.0
+		 * @access public
 		 */
 		public function run() {
 			$menu_hook = 'admin_menu';
@@ -55,6 +82,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			add_filter( $option_hook, array( $this, 'check_valid' ) );
 		}
 
+		/**
+		 * Registers setting, setting sections and settings fields.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function init_settings() {
 			register_setting( 'wp_encrypt_settings', 'wp_encrypt_settings', array( $this, 'validate_settings' ) );
 
@@ -74,6 +107,12 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			add_settings_field( 'show_warning_days', __( 'Expire Warnings Trigger', 'wp-encrypt' ), array( $this, 'render_settings_field' ), self::PAGE_SLUG, 'wp_encrypt_additional_settings', array( 'id' => 'show_warning_days' ) );
 		}
 
+		/**
+		 * Adds the settings page to the menu.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function init_menu() {
 			$parent = 'options-general.php';
 			if ( 'network' === $this->context ) {
@@ -82,6 +121,19 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_certificates', self::PAGE_SLUG, array( $this, 'render_page' ) );
 		}
 
+		/**
+		 * Renders the settings page.
+		 *
+		 * The settings page contains all UI for the plugin. The user can specify the settings for
+		 * his or her organization, then register the account with Let's Encrypt and then generate
+		 * a certificate.
+		 *
+		 * The settings page furthermore provides some additional settings to specify how the plugin
+		 * should behave.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function render_page() {
 			if ( CoreUtil::needs_filesystem_credentials() ) {
 				?>
@@ -204,10 +256,28 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			}*/
 		}
 
+		/**
+		 * Renders the main settings section description.
+		 *
+		 * Used as a callback for `add_settings_section()`.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function render_settings_description() {
 			echo '<p class="description">' . __( 'The following settings are required to generate a certificate.', 'wp-encrypt' ) . '</p>';
 		}
 
+		/**
+		 * Renders a settings field.
+		 *
+		 * Used as a callback for `add_settings_field()`.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param array $args Arguments for the current field.
+		 */
 		public function render_settings_field( $args = array() ) {
 			$value = Util::get_option( $args['id'] );
 
@@ -263,6 +333,19 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			}
 		}
 
+		/**
+		 * Shows a warning in the admin if the current certificate is close to expiration.
+		 *
+		 * Whether a warning like this should be shown or not can be specified through a setting,
+		 * as well as how many days before expiration it should start to show.
+		 *
+		 * Let's Encrypt certificates are valid for 90 days. The plugin may autogenerate the
+		 * certificate prior to expiration, but it is recommended to have this message show to keep
+		 * that in mind.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
 		public function maybe_show_expire_warning() {
 			if ( ! Util::get_option( 'show_warning' ) ) {
 				return;
@@ -306,6 +389,17 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			<?php
 		}
 
+		/**
+		 * Validates the plugin settings.
+		 *
+		 * Used as a callback for `register_setting()`.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param array $options The options prior to being saved.
+		 * @return array The validated options.
+		 */
 		public function validate_settings( $options = array() ) {
 			$options = array_map( 'strip_tags', array_map( 'trim', $options ) );
 
@@ -328,6 +422,18 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $options;
 		}
 
+		/**
+		 * Checks whether the main settings for the plugin are filled and valid.
+		 *
+		 * This is an additional check that is made before the options are saved.
+		 * Only when they are valid, it is possible to generate certificates with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param array $options The options prior to being saved.
+		 * @return array The options including a `valid` key.
+		 */
 		public function check_valid( $options ) {
 			$required_fields = array( 'country_code', 'country_name', 'organization' );
 			$valid = true;
@@ -341,11 +447,34 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $options;
 		}
 
+		/**
+		 * Prints the hidden fields for an action form.
+		 *
+		 * These fields are printed for the `register_account` and `generate_certificate` actions.
+		 * The `revoke_certificate` action is invoked by a GET request (a simple link button).
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $action The action the fields should be printed for.
+		 */
 		protected function action_post_fields( $action ) {
 			echo '<input type="hidden" name="action" value="' . $action . '" />';
 			wp_nonce_field( 'wp_encrypt_action' );
 		}
 
+		/**
+		 * Returns the URL to run an action.
+		 *
+		 * The plugin only uses this for the `revoke_certificate` action. The `register_account` and
+		 * `generate_certificate` actions are invoked by a POST request (a form).
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $action The action the URL should be returned for.
+		 * @return string The URL to trigger the action.
+		 */
 		protected function action_get_url( $action ) {
 			$url = ( 'network' === $this->context ) ? network_admin_url( 'settings.php' ) : admin_url( 'options-general.php' );
 			$url = add_query_arg( 'action', $action, $url );
@@ -353,6 +482,23 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			return $url;
 		}
 
+		/**
+		 * Renders basic instructions on how to set up the server with the acquired Let's Encrypt
+		 * certificate.
+		 *
+		 * The plugin can only obtain the certificates. Setting up the server to include them is not
+		 * possible through WordPress.
+		 *
+		 * These instructions should help to get familiar with the process of setting up SSL on the
+		 * server. For specific use-cases, online tutorials are probably a better source of
+		 * information.
+		 *
+		 * This method also shows where the keys and certificates are located on disk so that the
+		 * user knows where to find them.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 */
 		protected function render_instructions() {
 			global $is_apache, $is_nginx;
 
@@ -389,6 +535,17 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			<?php
 		}
 
+		/**
+		 * Renders basic instructions on how to set up an Apache server with the acquired SSL
+		 * certificate.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $site_domain      The (root) domain for this site (or Multisite).
+		 * @param string $site_dir         The root directory for this WordPress setup.
+		 * @param array  $certificate_dirs Array of directories for the keys and certificates.
+		 */
 		protected function render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ) {
 			$config = '<VirtualHost 192.168.0.1:443>
 DocumentRoot ' . untrailingslashit( $site_dir ) . '
@@ -424,6 +581,17 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 			<?php
 		}
 
+		/**
+		 * Renders basic instructions on how to set up an nginx server with the acquired SSL
+		 * certificate.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $site_domain      The (root) domain for this site (or Multisite).
+		 * @param string $site_dir         The root directory for this WordPress setup.
+		 * @param array  $certificate_dirs Array of directories for the keys and certificates.
+		 */
 		protected function render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ) {
 			$config = 'server {
 
@@ -445,7 +613,7 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 				<li>
 					<strong><?php _e( 'Find the virtual host you want to configure in your Nginx virtual hosts file.', 'wp-encrypt' ); ?></strong>
 					<br />
-					<?php _e( 'If you want your site to be accessible through both HTTP and HTTPS, copy the block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
+					<?php _e( 'If you want your site to be accessible through both HTTP and HTTPS, copy the existing block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
 				</li>
 				<li>
 					<strong><?php _e( 'Configure your virtual host block with the certificate.', 'wp-encrypt' ); ?></strong>
