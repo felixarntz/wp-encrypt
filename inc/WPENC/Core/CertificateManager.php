@@ -5,7 +5,7 @@
  * @package WPENC
  * @subpackage Core
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC\Core;
@@ -20,12 +20,28 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 	/**
 	 * This class is the global access point that manages certificates.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	final class CertificateManager {
+		/**
+		 * Singleton instance.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @static
+		 * @var WPENC\Core\CertificateManager
+		 */
 		private static $instance = null;
 
+		/**
+		 * Singleton method.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @return WPENC\Core\CertificateManager The class instance.
+		 */
 		public static function get() {
 			if ( null === self::$instance ) {
 				self::$instance = new self();
@@ -33,8 +49,22 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			return self::$instance;
 		}
 
+		/**
+		 * Constructor.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 */
 		private function __construct() {}
 
+		/**
+		 * Registers an account with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return array|WP_Error The response if successful, an error object otherwise.
+		 */
 		public function register_account() {
 			$account_keypair = AccountKeyPair::get();
 			if ( ! $account_keypair->exists() ) {
@@ -64,6 +94,19 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			return $response;
 		}
 
+		/**
+		 * Generates a certificate with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $domain        The root domain to generate the certificate for.
+		 * @param array  $addon_domains Additional domains to also include in the certificate.
+		 * @param array  $dn_args       Array of CSR settings. It should have the array keys
+		 *                              'ST' (for country), 'C' (for two-letter country code)
+		 *                              and 'O' (for organization name).
+		 * @return array|WP_Error The response if successful, an error object otherwise.
+		 */
 		public function generate_certificate( $domain, $addon_domains = array(), $dn_args = array() ) {
 			$account_keypair = AccountKeyPair::get();
 
@@ -155,6 +198,15 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			);
 		}
 
+		/**
+		 * Revokes a certificate with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $domain The root domain of the certificate to revoke.
+		 * @return bool|WP_Error True if the certificate was revoked successfully, an error object otherwise.
+		 */
 		public function revoke_certificate( $domain ) {
 			$certificate = Certificate::get( $domain );
 			if ( ! $certificate->exists() ) {

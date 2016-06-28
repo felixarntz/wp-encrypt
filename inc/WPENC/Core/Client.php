@@ -5,7 +5,7 @@
  * @package WPENC
  * @subpackage Core
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC\Core;
@@ -18,29 +18,107 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 	/**
-	 * This class contains core methods to interact with the Let's Encrypt API.
+	 * This class contains core methods to communicate with the Let's Encrypt API.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	final class Client {
+		/**
+		 * The API URL for Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 */
 		const API_URL = 'https://acme-v01.api.letsencrypt.org';
 
+		/**
+		 * The API endpoint to register an account.
+		 *
+		 * @since 1.0.0
+		 */
 		const ENDPOINT_REGISTER = 'acme/new-reg';
+
+		/**
+		 * The API endpoint to generate challenges.
+		 *
+		 * @since 1.0.0
+		 */
 		const ENDPOINT_AUTH = 'acme/new-authz';
+
+		/**
+		 * The API endpoint to generate a certificate.
+		 *
+		 * @since 1.0.0
+		 */
 		const ENDPOINT_NEW = 'acme/new-cert';
+
+		/**
+		 * The API endpoint to revoke a certificate.
+		 *
+		 * @since 1.0.0
+		 */
 		const ENDPOINT_REVOKE = 'acme/revoke-cert';
+
+		/**
+		 * The API endpoint overview.
+		 *
+		 * @since 1.0.0
+		 */
 		const ENDPOINT_DIRECTORY = 'directory';
 
+		/**
+		 * The resource to pass to the account registering endpoint.
+		 *
+		 * @since 1.0.0
+		 */
 		const RESOURCE_REGISTER = 'new-reg';
+
+		/**
+		 * The resource to pass to the challenges generating endpoint.
+		 *
+		 * @since 1.0.0
+		 */
 		const RESOURCE_AUTH = 'new-authz';
+
+		/**
+		 * The resource to pass to the challenges validating endpoint.
+		 *
+		 * @since 1.0.0
+		 */
 		const RESOURCE_CHALLENGE = 'challenge';
+
+		/**
+		 * The resource to pass to the certificate generating endpoint.
+		 *
+		 * @since 1.0.0
+		 */
 		const RESOURCE_NEW = 'new-cert';
 
+		/**
+		 * The license document URL.
+		 *
+		 * @since 1.0.0
+		 */
 		const LICENSE_URL = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf';
 
+		/**
+		 * Singleton instance.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @static
+		 * @var WPENC\Core\Client
+		 */
 		private static $instance = null;
 
+		/**
+		 * Singleton method.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @return WPENC\Core\Client The class instance.
+		 */
 		public static function get() {
 			if ( null === self::$instance ) {
 				self::$instance = new self();
@@ -48,15 +126,67 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return self::$instance;
 		}
 
+		/**
+		 * The response code received in the last response.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $last_response_code = null;
 
+		/**
+		 * The response header received in the last response.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $last_response_header = null;
+
+		/**
+		 * The nonce received in the last response.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $last_nonce = null;
+
+		/**
+		 * The location received in the last response.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $last_location = null;
+
+		/**
+		 * The links received in the last response.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $last_links = null;
 
+		/**
+		 * Constructor.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 */
 		private function __construct() {}
 
+		/**
+		 * Registers an account with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return array|WP_Error The response array if successful or an error object otherwise.
+		 */
 		public function register() {
 			return $this->signed_request( self::ENDPOINT_REGISTER, array(
 				'resource'		=> self::RESOURCE_REGISTER,
@@ -64,6 +194,15 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			) );
 		}
 
+		/**
+		 * Generates challenges for a domain with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $domain The domain to receive challenges for.
+		 * @return array|WP_Error The response array if successful or an error object otherwise.
+		 */
 		public function auth( $domain ) {
 			return $this->signed_request( self::ENDPOINT_AUTH, array(
 				'resource'		=> self::RESOURCE_AUTH,
@@ -74,6 +213,17 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			) );
 		}
 
+		/**
+		 * Validates a domain challenge with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $uri The URI to check.
+		 * @param string $token The token for the challenge.
+		 * @param string $data Key authorization data.
+		 * @return array|WP_Error The response array if successful or an error object otherwise.
+		 */
 		public function challenge( $uri, $token, $data ) {
 			return $this->signed_request( $uri, array(
 				'resource'			=> self::RESOURCE_CHALLENGE,
@@ -83,6 +233,15 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			) );
 		}
 
+		/**
+		 * Generates a certificate with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $csr The CSR for the certificate.
+		 * @return string|WP_Error The certificate if successful or an error object otherwise.
+		 */
 		public function generate( $csr ) {
 			return $this->signed_request( self::ENDPOINT_NEW, array(
 				'resource'		=> self::RESOURCE_NEW,
@@ -90,16 +249,45 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			) );
 		}
 
+		/**
+		 * Revokes a certificate with Let's Encrypt.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $cert The certificate to revoke.
+		 * @return array|WP_Error The response array if successful or an error object otherwise.
+		 */
 		public function revoke( $cert ) {
 			return $this->signed_request( self::ENDPOINT_REVOKE, array(
 				'certificate'	=> Util::base64_url_encode( base64_decode( $cert ) ),
 			) );
 		}
 
+		/**
+		 * Lists the directory overview and general entry point.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return array|WP_Error The response array if successful or an error object otherwise.
+		 */
 		public function directory() {
 			return $this->request( 'directory', 'GET' );
 		}
 
+		/**
+		 * Sends a signed request to the Let's Encrypt API.
+		 *
+		 * All requests except the directory request go through this method.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $endpoint The endpoint to send a request to.
+		 * @param array  $data     Data to send with the request.
+		 * @return string|array|WP_Error Either a JSON-decoded array response, a plain text response or an error object.
+		 */
 		public function signed_request( $endpoint, $data = null ) {
 			$account_keypair = AccountKeyPair::get();
 
@@ -153,6 +341,17 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			) );
 		}
 
+		/**
+		 * Sends a regular request to the Let's Encrypt API.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $endpoint The endpoint to send a request to.
+		 * @param string $method   The request method ('GET' or 'POST').
+		 * @param array  $data     Data to send with the request.
+		 * @return string|array|WP_Error Either a JSON-decoded array response, a plain text response or an error object.
+		 */
 		public function request( $endpoint, $method = 'GET', $data = null ) {
 			if ( is_array( $data ) ) {
 				$data = json_encode( $data );
@@ -190,6 +389,14 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null === $response ? $body : $response;
 		}
 
+		/**
+		 * Returns the last response code.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return string The last response code.
+		 */
 		public function get_last_code() {
 			if ( $this->last_response_code ) {
 				return $this->last_response_code;
@@ -198,6 +405,14 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null;
 		}
 
+		/**
+		 * Returns the last response nonce.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return string The last response nonce.
+		 */
 		public function get_last_nonce() {
 			if ( $this->last_nonce ) {
 				return $this->last_nonce;
@@ -206,6 +421,14 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null;
 		}
 
+		/**
+		 * Returns the last response location.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return string The last response location.
+		 */
 		public function get_last_location() {
 			if ( $this->last_location ) {
 				return $this->last_location;
@@ -214,6 +437,14 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 			return null;
 		}
 
+		/**
+		 * Returns the last response links.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return array The last response links.
+		 */
 		public function get_last_links() {
 			if ( $this->last_links && preg_match_all( '#<(.*?)>;rel="up"#x', $this->last_links, $matches ) ) {
 				return $matches[1];

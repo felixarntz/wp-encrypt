@@ -5,7 +5,7 @@
  * @package WPENC
  * @subpackage Core
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC\Core;
@@ -20,23 +20,88 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 	/**
 	 * This class represents a single pair or public and private key.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	abstract class KeyPair {
+		/**
+		 * Filename for the public key.
+		 *
+		 * @since 1.0.0
+		 */
 		const PUBLIC_NAME = 'public.pem';
+
+		/**
+		 * Filename for the private key.
+		 *
+		 * @since 1.0.0
+		 */
 		const PRIVATE_NAME = 'private.pem';
 
+		/**
+		 * The path the key files reside in.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var string
+		 */
 		protected $path = null;
+
+		/**
+		 * The public key. Used temporarily to cache within the same request.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var string
+		 */
 		protected $public_key = null;
+
+		/**
+		 * The private key. Used temporarily to cache within the same request.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var string
+		 */
 		protected $private_key = null;
+
+		/**
+		 * The private key resource. Used temporarily to cache within the same request.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var resource
+		 */
 		protected $private_key_resource = null;
+
+		/**
+		 * The private key details. Used temporarily to cache within the same request.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var array
+		 */
 		protected $private_key_details = null;
 
+		/**
+		 * Constructor.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $sub_path The relative sub path for the key files.
+		 */
 		protected function __construct( $sub_path ) {
 			$this->path = Util::get_letsencrypt_certificates_dir_path() . '/' . trim( $sub_path, '/' );
 		}
 
+		/**
+		 * Generates the public and private key.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return bool|WP_Error True if successful, an error object otherwise.
+		 */
 		public function generate() {
 			$filesystem = Util::get_filesystem();
 
@@ -85,12 +150,29 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			return true;
 		}
 
+		/**
+		 * Checks whether the public and private key exist.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return bool True if the key files exists, false otherwise.
+		 */
 		public function exists() {
 			$filesystem = Util::get_filesystem();
 
 			return $filesystem->exists( $this->path . '/' . self::PRIVATE_NAME ) && $filesystem->exists( $this->path . '/' . self::PUBLIC_NAME );
 		}
 
+		/**
+		 * Returns the public key.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param bool $force_refresh Whether to explicitly re-check the public key.
+		 * @return string|WP_Error The public key if successful or an error object otherwise.
+		 */
 		public function get_public( $force_refresh = false ) {
 			$filesystem = Util::get_filesystem();
 
@@ -104,6 +186,15 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			return $this->public_key;
 		}
 
+		/**
+		 * Returns the private key.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param bool $force_refresh Whether to explicitly re-check the private key.
+		 * @return string|WP_Error The private key if successful or an error object otherwise.
+		 */
 		public function get_private( $force_refresh = false ) {
 			$filesystem = Util::get_filesystem();
 
@@ -117,6 +208,15 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			return $this->private_key;
 		}
 
+		/**
+		 * Returns the private key resource.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param bool $force_refresh Whether to explicitly re-check the private key resource.
+		 * @return resource|WP_Error The private key resource if successful or an error object otherwise.
+		 */
 		public function read_private( $force_refresh = false ) {
 			$filesystem = Util::get_filesystem();
 
@@ -135,6 +235,15 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			return $this->private_key_resource;
 		}
 
+		/**
+		 * Returns the private key details.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param bool $force_refresh Whether to explicitly re-check the private key details.
+		 * @return array|WP_Error The private key details if successful or an error object otherwise.
+		 */
 		public function get_private_details( $force_refresh = false ) {
 			if ( null === $this->private_key_details || $force_refresh ) {
 				$private_key = $this->read_private();

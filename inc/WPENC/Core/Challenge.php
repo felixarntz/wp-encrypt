@@ -5,7 +5,7 @@
  * @package WPENC
  * @subpackage Core
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC\Core;
@@ -20,10 +20,20 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 	/**
 	 * This class validates challenges for a domain.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	final class Challenge {
+		/**
+		 * Validates a domain with Let's Encrypt through a HTTP challenge.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $domain              The domain to validate.
+		 * @param array  $account_key_details The account private key details.
+		 * @return bool|WP_Error True if the domain was successfully validated, an error object otherwise.
+		 */
 		public static function validate( $domain, $account_key_details ) {
 			$filesystem = Util::get_filesystem();
 

@@ -5,7 +5,7 @@
  * @package WPENC
  * @subpackage Core
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 0.5.0
+ * @since 1.0.0
  */
 
 namespace WPENC\Core;
@@ -20,16 +20,50 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 	/**
 	 * This class represents a single certificate.
 	 *
-	 * @internal
-	 * @since 0.5.0
+	 * @since 1.0.0
 	 */
 	final class Certificate {
+		/**
+		 * Filename for the full chain (certificate and chain).
+		 *
+		 * @since 1.0.0
+		 */
 		const FULLCHAIN_NAME = 'fullchain.pem';
+
+		/**
+		 * Filename for the certificate.
+		 *
+		 * @since 1.0.0
+		 */
 		const CERT_NAME = 'cert.pem';
+
+		/**
+		 * Filename for the certificate chain.
+		 *
+		 * @since 1.0.0
+		 */
 		const CHAIN_NAME = 'chain.pem';
 
+		/**
+		 * Singleton instances.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @static
+		 * @var array
+		 */
 		private static $instances = array();
 
+		/**
+		 * Singleton method.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $domain The root domain to get the instance for.
+		 * @return WPENC\Core\Certificate The class instance for the domain.
+		 */
 		public static function get( $domain ) {
 			if ( ! isset( self::$instances[ $domain ] ) ) {
 				self::$instances[ $domain ] = new self( $domain );
@@ -37,20 +71,46 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 			return self::$instances[ $domain ];
 		}
 
+		/**
+		 * The root domain for this certificate.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $domain = null;
+
+		/**
+		 * The path the certificate files reside in.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var string
+		 */
 		private $path = null;
 
+		/**
+		 * Constructor.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 *
+		 * @param string $domain The root domain of this certificate.
+		 */
 		private function __construct( $domain ) {
 			$this->domain = $domain;
 			$this->path = Util::get_letsencrypt_certificates_dir_path() . '/' . $domain;
 		}
 
-		public function exists() {
-			$filesystem = Util::get_filesystem();
-
-			return $filesystem->exists( $this->path . '/' . self::FULLCHAIN_NAME ) && $filesystem->exists( $this->path . '/' . self::CERT_NAME ) && $filesystem->exists( $this->path . '/' . self::CHAIN_NAME );
-		}
-
+		/**
+		 * Writes certificates into the certificate files.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param array $certs Array of certificate strings.
+		 * @return bool|WP_Error True if successful, an error object otherwise.
+		 */
 		public function set( $certs ) {
 			$filesystem = Util::get_filesystem();
 
@@ -72,6 +132,28 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 			return true;
 		}
 
+		/**
+		 * Checks whether the certificate for this domain exists.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return bool True if the certificate files exists, false otherwise.
+		 */
+		public function exists() {
+			$filesystem = Util::get_filesystem();
+
+			return $filesystem->exists( $this->path . '/' . self::FULLCHAIN_NAME ) && $filesystem->exists( $this->path . '/' . self::CERT_NAME ) && $filesystem->exists( $this->path . '/' . self::CHAIN_NAME );
+		}
+
+		/**
+		 * Reads the certificate.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return string|WP_Error The certificate string if successful or an error object otherwise.
+		 */
 		public function read() {
 			$filesystem = Util::get_filesystem();
 
@@ -89,6 +171,19 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 			return $pem;
 		}
 
+		/**
+		 * Generates a CSR for one or more domains.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param resource $key_resource The private key resource for the CSR.
+		 * @param array    $domains      Array of domains the CSR should be created for.
+		 * @param array    $dn           Array of CSR settings. It should have the array keys
+		 *                               'ST' (for country), 'C' (for two-letter country code)
+		 *                               and 'O' (for organization name).
+		 * @return string|WP_Error The generated CSR if successful or an error object otherwise.
+		 */
 		public function generate_csr( $key_resource, $domains, $dn = array() ) {
 			$filesystem = Util::get_filesystem();
 
@@ -153,19 +248,59 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment';
 			return trim( $matches[1] );
 		}
 
+		/**
+		 * Prefixes a domain with `DNS:`.
+		 *
+		 * Used as a callback for `array_map()` to create a CSR.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @see WPENC\Core\Certificate::generate_csr()
+		 *
+		 * @param string $domain The domain to prefix.
+		 * @return string The prefixed domain.
+		 */
 		private function dnsify( $domain ) {
 			return 'DNS:' . $domain;
 		}
 
+		/**
+		 * Parses a certificate so that it can be printed to a file.
+		 *
+		 * Used as callback for `array_map()` to write the certificate files.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @see WPENC\Core\Certificate::set()
+		 *
+		 * @param string $cert The certificate to parse.
+		 * @return string The parsed certificate.
+		 */
 		private function parse_pem( $cert ) {
 			$pem = chunk_split( base64_encode( $cert ), 64, "\n" );
 			return $this->get_cert_begin() . "\n" . $pem . $this->get_cert_end() . "\n";
 		}
 
+		/**
+		 * Returns the certificate begin flag.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 *
+		 * @return string The certificate begin flag.
+		 */
 		private function get_cert_begin() {
 			return '-----BEGIN CERTIFICATE-----';
 		}
 
+		/**
+		 * Returns the certificate end flag.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 *
+		 * @return string The certificate end flag.
+		 */
 		private function get_cert_end() {
 			return '-----END CERTIFICATE-----';
 		}
