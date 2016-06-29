@@ -17,7 +17,7 @@ Tags:        lets encrypt, ssl, certificates, https, free ssl
  *
  * @package WPENC
  * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * @since 1.0.0-beta.1
+ * @since 1.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
