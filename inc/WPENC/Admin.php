@@ -118,7 +118,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			if ( 'network' === $this->context ) {
 				$parent = 'settings.php';
 			}
-			add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_certificates', self::PAGE_SLUG, array( $this, 'render_page' ) );
+			$page_hook = add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_certificates', self::PAGE_SLUG, array( $this, 'render_page' ) );
+
+			add_action( 'load-' . $page_hook, array( $this, 'add_screen_help' ) );
 		}
 
 		/**
@@ -243,7 +245,18 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 						</form>
 
 						<?php if ( $has_certificate ) : ?>
-							<?php $this->render_instructions(); ?>
+							<?php
+							$site_domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
+							$certificate_dirs = $this->get_certificate_dirs( $site_domain );
+							?>
+							<h3><?php _e( 'Certificate & Key Locations', 'wp-encrypt' ); ?></h4>
+							<ul>
+								<li><?php printf( __( 'Certificate: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['cert'] . '</code>' ); ?></li>
+								<li><?php printf( __( 'Certificate Chain: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['chain'] . '</code>' ); ?></li>
+								<li><?php printf( __( 'Certificate Full Chain: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['fullchain'] . '</code>' ); ?></li>
+								<li><?php printf( __( 'Private Key: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['key'] . '</code>' ); ?></li>
+							</ul>
+							<p><?php _e( 'Please check the Help tabs at the top of this page to learn how to set up the SSL certificate.', 'wp-encrypt' ); ?></p>
 						<?php endif; ?>
 					<?php endif; ?>
 				<?php endif; ?>
@@ -448,6 +461,223 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		/**
+		 * Adds help tabs to the plugin settings screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
+		public function add_screen_help() {
+			$screen = get_current_screen();
+
+			$screen->add_help_tab( array(
+				'id'		=> 'wp_encrypt_help_getting_started',
+				'title'		=> __( 'Getting Started', 'wp-encrypt' ),
+				'callback'	=> array( $this, 'render_help_getting_started' ),
+			) );
+			$screen->add_help_tab( array(
+				'id'		=> 'wp_encrypt_help_setting_up_ssl',
+				'title'		=> __( 'Setting up SSL', 'wp-encrypt' ),
+				'callback'	=> array( $this, 'render_help_setting_up_ssl' ),
+			) );
+			$screen->add_help_tab( array(
+				'id'		=> 'wp_encrypt_help_about_letsencrypt',
+				'title'		=> __( "About Let's Encrypt", 'wp-encrypt' ),
+				'callback'	=> array( $this, 'render_help_about_letsencrypt' ),
+			) );
+		}
+
+		/**
+		 * Renders the Getting Started help tab for the plugin settings screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
+		public function render_help_getting_started() {
+			?>
+			<p><?php _e( 'To obtain your first SSL certificate, follow these steps:', 'wp-encrypt' ); ?></p>
+
+			<ol>
+				<li>
+					<?php _e( 'Enter the information about your organization name, its country name and its two-letter country code.', 'wp-encrypt' ); ?><br />
+					<?php _e( 'Optionally adjust the additional settings to match your needs. The SSL certificates are valid for 90 days, so they need to be regenerated before they expire. Check the option to auto-generate the certificate if you would like to have the plugin take care of it automatically.', 'wp-encrypt' ); ?><br />
+					<?php _e( 'Hit the <em>Save Changes</em> button when you are done with the setup.', 'wp-encrypt' ); ?>
+				</li>
+				<li>
+					<?php _e( 'A new section will appear where you need to sign up for an account with Let&apos;s Encrypt.', 'wp-encrypt' ); ?>
+					<?php _e( 'You do not need to worry about this account as it will only be used to generate the SSL certificates later.', 'wp-encrypt' ); ?><br />
+					<?php _e( 'Click on <em>Register Account</em> to sign up with the data you specified as account settings in the first step.', 'wp-encrypt' ); ?>
+				</li>
+				<li>
+					<?php _e( 'You should now be able to obtain your first SSL certificate. Hit the <em>Generate Certificate</em> button to let the plugin do its magic.', 'wp-encrypt' ); ?>
+					<?php if ( is_multisite() ) : ?>
+						<br />
+						<?php _e( 'The certificate will automatically be generated for all sites in this network.', 'wp-encrypt' ); ?>
+						<?php if ( App::is_multinetwork() ) : ?>
+							<?php _e( 'If you would like your certificate to also include all sites from the other networks, please check the <em>Global SSL Certificate</em> option.', 'wp-encrypt' ); ?>
+						<?php endif; ?>
+					<?php endif; ?>
+				</li>
+				<li>
+					<?php _e( 'After having generated the initial certificate, you need to set up SSL on your server (see the corresponding tab on the left for more information).', 'wp-encrypt' ); ?><br />
+					<?php _e( 'From now on, the certificate will be regenerated automatically, ten days before expiration, if you set the option accordingly. In any case, you will see a warning prior to expiration (which you can adjust as well), so you know when to take action.', 'wp-encrypt' ); ?>
+				</li>
+			</ol>
+			<?php
+		}
+
+		/**
+		 * Renders the Setting up SSL help tab for the plugin settings screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @global bool $is_nginx  Whether we're on an nginx server.
+		 */
+		public function render_help_setting_up_ssl() {
+			global $is_nginx;
+
+			$site_domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
+
+			$site_dir = CoreUtil::detect_base( 'path' );
+
+			$certificate_dirs = $this->get_certificate_dirs( $site_domain );
+
+			?>
+			<p>
+				<?php _e( 'In order to use the certificate you acquired, you need to configure SSL and set the paths to the certificate and the private key in your server configuration.', 'wp-encrypt' ); ?>
+			</p>
+			<p>
+				<?php _e( 'While the Let&apos;s Encrypt service and this plugin make it easy to manage SSL certificates, you still need to manually set up SSL on your web server.', 'wp-encrypt' ); ?>
+				<?php _e( 'This is a one-time-only process you need to perform after you have obtained your first certificate.', 'wp-encrypt' ); ?>
+			</p>
+			<p>
+				<?php _e( 'To set up SSL on your server, you will need full access to your server configuration. Unfortunately, not all hosting services grant you these permissions. If you are unable to follow the below instructions, please refer to your hosting provider.', 'wp-encrypt' ); ?>
+			</p>
+
+			<?php if ( $is_nginx ) : ?>
+				<?php $this->render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ); ?>
+			<?php else : ?>
+				<?php $this->render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ); ?>
+			<?php endif; ?>
+
+			<p>
+				<?php _e( 'After changing your server configuration files as described, you need to restart your server in order for the changes to take effect.', 'wp-encrypt' ); ?>
+				<?php printf( __( 'The final step is to switch WordPress itself to use HTTPS instead of HTTP. There are several ways to accomplish this - you can find a good tutorial on <a href="%s">WPBeginner</a>.', 'wp-encrypt' ), 'http://www.wpbeginner.com/wp-tutorials/how-to-add-ssl-and-https-in-wordpress/' ); ?>
+			</p>
+			<?php
+		}
+
+		/**
+		 * Renders the About Let's Encrypt help tab for the plugin settings screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
+		public function render_help_about_letsencrypt() {
+			?>
+			<p>
+				<?php _e( 'Let&apos;s Encrypt is a free, automated, and open certificate authority brought to you by the non-profit Internet Security Research Group (ISRG).', 'wp-encrypt' ); ?>
+				<?php _e( 'The project aims to promote encrypted connections on the web, ease the process of obtaining valid SSL certificates and make it possible to generate them for free.', 'wp-encrypt' ); ?><br />
+				<?php printf( __( 'For more information, please visit <a href="%s">their website</a>.', 'wp-encrypt' ), 'https://letsencrypt.org/' ); ?>
+			</p>
+			<p>
+				<?php _e( 'This plugin allows you to connect to their public service through your WordPress site and manage your certificates from here.', 'wp-encrypt' ); ?>
+			</p>
+			<?php
+		}
+
+		/**
+		 * Renders basic instructions on how to set up an Apache server with the acquired SSL
+		 * certificate.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $site_domain      The (root) domain for this site (or network).
+		 * @param string $site_dir         The root directory for this WordPress setup.
+		 * @param array  $certificate_dirs Array of directories for the keys and certificates.
+		 */
+		protected function render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ) {
+			$config = '<VirtualHost 192.168.0.1:443>
+DocumentRoot ' . untrailingslashit( $site_dir ) . '
+ServerName ' . $site_domain . '
+SSLEngine on
+SSLCertificateFile ' . $certificate_dirs['cert'] . '
+SSLCertificateKeyFile ' . $certificate_dirs['key'] . '
+SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
+</VirtualHost>
+'; ?>
+			<ul>
+				<li>
+					<strong><?php _e( 'Detect which Apache config file to edit.', 'wp-encrypt' ); ?></strong>
+					<br />
+					<?php printf( __( 'Usually this file can be found at either %1$s or %2$s.', 'wp-encrypt' ), '<code>/etc/httpd/httpd.conf</code>', '<code>/etc/apache2/apache2.conf</code>' ); ?>
+					<?php printf( __( 'In particular, you need to look for a file that contains multiple %s blocks.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?>
+					<br />
+					<?php printf( __( 'A good method to detect the file on Linux machines is to use the command %s (the last argument should be the base directory for your Apache installation).', 'wp-encrypt' ), '<code>grep -i -r "SSLCertificateFile" /etc/httpd/</code>' ); ?>
+				</li>
+				<li>
+					<strong><?php printf( __( 'Find the %s block to configure.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?></strong>
+					<br />
+					<?php _e( 'You need to find the block that is used to configure your WordPress site. If you want your site to be accessible through both HTTP and HTTPS, copy the block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
+				</li>
+				<li>
+					<strong><?php printf( __( 'Configure your %s block with the certificate.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?></strong>
+					<br />
+					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
+					<br />
+					<textarea class="code" readonly="readonly" rows="9" style="width:100%;"><?php echo esc_textarea( $config ); ?></textarea>
+				</li>
+			</ul>
+			<?php
+		}
+
+		/**
+		 * Renders basic instructions on how to set up an nginx server with the acquired SSL
+		 * certificate.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param string $site_domain      The (root) domain for this site (or network).
+		 * @param string $site_dir         The root directory for this WordPress setup.
+		 * @param array  $certificate_dirs Array of directories for the keys and certificates.
+		 */
+		protected function render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ) {
+			$config = 'server {
+
+	listen   443;
+
+	ssl on;
+	ssl_certificate ' . $certificate_dirs['fullchain'] . '
+	ssl_certificate_key ' . $certificate_dirs['key'] . ';
+
+	server_name ' . $site_domain . ';
+	location / {
+		root   ' . trailingslashit( $site_dir ) . ';
+		index  index.php;
+	}
+
+}
+'; ?>
+			<ul>
+				<li>
+					<strong><?php _e( 'Find the virtual host you want to configure in your Nginx virtual hosts file.', 'wp-encrypt' ); ?></strong>
+					<br />
+					<?php _e( 'If you want your site to be accessible through both HTTP and HTTPS, copy the existing block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
+				</li>
+				<li>
+					<strong><?php _e( 'Configure your virtual host block with the certificate.', 'wp-encrypt' ); ?></strong>
+					<br />
+					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
+					<br />
+					<textarea class="code" readonly="readonly" rows="16" style="width:100%;"><?php echo esc_textarea( $config ); ?></textarea>
+				</li>
+			</ul>
+			<?php
+		}
+
+		/**
 		 * Prints the hidden fields for an action form.
 		 *
 		 * These fields are printed for the `register_account` and `generate_certificate` actions.
@@ -483,147 +713,26 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		}
 
 		/**
-		 * Renders basic instructions on how to set up the server with the acquired Let's Encrypt
-		 * certificate.
-		 *
-		 * The plugin can only obtain the certificates. Setting up the server to include them is not
-		 * possible through WordPress.
-		 *
-		 * These instructions should help to get familiar with the process of setting up SSL on the
-		 * server. For specific use-cases, online tutorials are probably a better source of
-		 * information.
-		 *
-		 * This method also shows where the keys and certificates are located on disk so that the
-		 * user knows where to find them.
+		 * Returns an array of directories for the certificates and keys for a domain.
 		 *
 		 * @since 1.0.0
 		 * @access protected
+		 *
+		 * @param string $domain The domain to get the directories for.
+		 * @return array An array containing 'base', 'cert', 'chain', 'fullchain' and 'key' keys with their respective directory as value.
 		 */
-		protected function render_instructions() {
-			global $is_apache, $is_nginx;
-
+		protected function get_certificate_dirs( $domain ) {
 			$site_domain = 'network' === $this->context ? Util::get_network_domain() : Util::get_site_domain();
 
-			$site_dir = CoreUtil::detect_base( 'path' );
-
 			$certificate_dirs = array(
-				'base'	=> CoreUtil::get_letsencrypt_certificates_dir_path() . '/' . $site_domain,
+				'base'	=> CoreUtil::get_letsencrypt_certificates_dir_path() . '/' . $domain,
 			);
 			$certificate_dirs['cert'] = $certificate_dirs['base'] . '/' . Certificate::CERT_NAME;
 			$certificate_dirs['chain'] = $certificate_dirs['base'] . '/' . Certificate::CHAIN_NAME;
 			$certificate_dirs['fullchain'] = $certificate_dirs['base'] . '/' . Certificate::FULLCHAIN_NAME;
 			$certificate_dirs['key'] = $certificate_dirs['base'] . '/' . KeyPair::PRIVATE_NAME;
 
-			?>
-			<h3><?php _e( 'Setup', 'wp-encrypt' ); ?></h3>
-
-			<p><?php _e( 'In order to use the certificate you acquired, you need to configure SSL and set the paths to the certificate and the private key in your server configuration.', 'wp-encrypt' ); ?></p>
-
-			<?php if ( $is_apache ) : ?>
-				<?php $this->render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ); ?>
-			<?php elseif ( $is_nginx ) : ?>
-				<?php $this->render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ); ?>
-			<?php else : ?>
-				<h4><?php _e( 'Certificate & Key locations', 'wp-encrypt' ); ?></h4>
-				<ul>
-					<li><?php printf( __( 'Certificate: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['cert'] . '</code>' ); ?></li>
-					<li><?php printf( __( 'Certificate Chain: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['chain'] . '</code>' ); ?></li>
-					<li><?php printf( __( 'Certificate Full Chain: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['fullchain'] . '</code>' ); ?></li>
-					<li><?php printf( __( 'Private Key: %s', 'wp-encrypt' ), '<code>' . $certificate_dirs['key'] . '</code>' ); ?></li>
-				</ul>
-			<?php endif; ?>
-			<?php
-		}
-
-		/**
-		 * Renders basic instructions on how to set up an Apache server with the acquired SSL
-		 * certificate.
-		 *
-		 * @since 1.0.0
-		 * @access protected
-		 *
-		 * @param string $site_domain      The (root) domain for this site (or Multisite).
-		 * @param string $site_dir         The root directory for this WordPress setup.
-		 * @param array  $certificate_dirs Array of directories for the keys and certificates.
-		 */
-		protected function render_apache_instructions( $site_domain, $site_dir, $certificate_dirs ) {
-			$config = '<VirtualHost 192.168.0.1:443>
-DocumentRoot ' . untrailingslashit( $site_dir ) . '
-ServerName ' . $site_domain . '
-SSLEngine on
-SSLCertificateFile ' . $certificate_dirs['cert'] . '
-SSLCertificateKeyFile ' . $certificate_dirs['key'] . '
-SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
-</VirtualHost>
-'; ?>
-			<ul>
-				<li>
-					<strong><?php _e( 'Detect which Apache config file to edit.', 'wp-encrypt' ); ?></strong>
-					<br />
-					<?php printf( __( 'Usually this file can be found at either %1$s or %2$s.', 'wp-encrypt' ), '<code>/etc/httpd/httpd.conf</code>', '<code>/etc/apache2/apache2.conf</code>' ); ?>
-					<?php printf( __( 'In particular, you need to look for a file that contains multiple %s blocks.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?>
-					<br />
-					<?php printf( __( 'A good method to detect the file on Linux machines is to use the command %s (the last argument should be the base directory for your Apache installation).', 'wp-encrypt' ), '<code>grep -i -r "SSLCertificateFile" /etc/httpd/</code>' ); ?>
-				</li>
-				<li>
-					<strong><?php printf( __( 'Find the %s block to configure.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?></strong>
-					<br />
-					<?php _e( 'You need to find the block that is used to configure your WordPress site. If you want your site to be accessible through both HTTP and HTTPS, copy the block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
-				</li>
-				<li>
-					<strong><?php printf( __( 'Configure your %s block with the certificate.', 'wp-encrypt' ), '<code>&lt;VirtualHost&gt;</code>' ); ?></strong>
-					<br />
-					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
-					<br />
-					<textarea class="code" readonly="readonly" cols="100" rows="9"><?php echo esc_textarea( $config ); ?></textarea>
-				</li>
-			</ul>
-			<?php
-		}
-
-		/**
-		 * Renders basic instructions on how to set up an nginx server with the acquired SSL
-		 * certificate.
-		 *
-		 * @since 1.0.0
-		 * @access protected
-		 *
-		 * @param string $site_domain      The (root) domain for this site (or Multisite).
-		 * @param string $site_dir         The root directory for this WordPress setup.
-		 * @param array  $certificate_dirs Array of directories for the keys and certificates.
-		 */
-		protected function render_nginx_instructions( $site_domain, $site_dir, $certificate_dirs ) {
-			$config = 'server {
-
-	listen   443;
-
-	ssl on;
-	ssl_certificate ' . $certificate_dirs['fullchain'] . '
-	ssl_certificate_key ' . $certificate_dirs['key'] . ';
-
-	server_name ' . $site_domain . ';
-	location / {
-		root   ' . trailingslashit( $site_dir ) . ';
-		index  index.php;
-	}
-
-}
-'; ?>
-			<ul>
-				<li>
-					<strong><?php _e( 'Find the virtual host you want to configure in your Nginx virtual hosts file.', 'wp-encrypt' ); ?></strong>
-					<br />
-					<?php _e( 'If you want your site to be accessible through both HTTP and HTTPS, copy the existing block and configure the new block as described below. Otherwise simply configure the existing block.', 'wp-encrypt' ); ?>
-				</li>
-				<li>
-					<strong><?php _e( 'Configure your virtual host block with the certificate.', 'wp-encrypt' ); ?></strong>
-					<br />
-					<?php _e( 'Below is a simple example configuration for an SSL setup:', 'wp-encrypt' ); ?>
-					<br />
-					<textarea class="code" readonly="readonly" cols="100" rows="16"><?php echo esc_textarea( $config ); ?></textarea>
-				</li>
-			</ul>
-			<?php
+			return $certificate_dirs;
 		}
 	}
 }

@@ -55,6 +55,10 @@ Note that, while must-use plugins have the advantage that they cannot be disable
 
 == Frequently Asked Questions ==
 
+= How do I use the plugin? =
+
+After plugin activation you will find a new admin page in the Settings menu where you can register, generate, renew and revoke certificates for your WordPress site. In a Multisite, this menu is not located in the regular admin, but in the network admin, and it will work for all sites in the network. On the admin page you will find a help tab on top which provides further information on how to get started.
+
 = Why can't I save the certificate? =
 
 The problem might be that WordPress is unable to write the certificate and save it on your server. By default WordPress needs to be able to write to the directories `../letsencrypt` and `.well-known` (both paths are relative to the site's root directory). If WordPress cannot write to these locations, it will show a warning on the plugin's settings page, and you will be asked to enter your filesystem credentials when necessary. However, note that in this case automatically renewing the certificate is not possible (you will have to do it manually then).
@@ -66,10 +70,6 @@ To change the directories where the certificates are being stored, please define
 = I have obtained my certificate, but my site is still regular HTTP! =
 
 The plugin only acts as a connection between your WordPress site and Let's Encrypt - it is used to obtain the certificate. WordPress cannot modify your server configuration to use it, that's why you need to take care of it yourself. However, you will find basic instructions in the plugin. After adjusting your server configuration, you also need to switch your site to HTTPS.
-
-= How do I use the plugin? =
-
-After plugin activation you will find a new admin page in the Settings menu where you can register, generate, renew and revoke certificates for your WordPress site. In a Multisite, this menu is not located in the regular admin, but in the network admin, and it will work for all sites in the network.
 
 = Where should I submit my support request? =
 
@@ -83,7 +83,9 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 
 == Screenshots ==
 
-TODO
+1. Configuring the plugin
+2. Registering an account with Let's Encrypt
+3. Generating a certificate with Let's Encrypt
 
 == Changelog ==
 

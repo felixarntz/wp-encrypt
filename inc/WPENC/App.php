@@ -178,5 +178,92 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 
 			return array_merge( $custom_links, $links );
 		}
+
+		/**
+		 * Renders a plugin information message.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $status The activation status of the plugin. Either 'activated' or 'active'.
+		 * @param string $context In which context we're currently in. Either 'site' or 'network'. Defaults to 'site'.
+		 */
+		public static function render_status_message( $status, $context = 'site' ) {
+			$settings_page_url = 'network' === $context ? network_admin_url( 'settings.php?page=wp_encrypt' ) : admin_url( 'options-general.php?page=wp_encrypt' );
+
+			?>
+			<p>
+				<?php if ( 'activated' === $status ) : ?>
+					<?php printf( __( 'You have just activated %s.', 'wp-encrypt' ), '<strong>' . self::get_info( 'name' ) . '</strong>' ); ?>
+				<?php elseif ( 'network' === $context ) : ?>
+					<?php printf( __( 'You are running %s on your network.', 'wp-encrypt' ), '<strong>' . self::get_info( 'name' ) . '</strong>' ); ?>
+				<?php else : ?>
+					<?php printf( __( 'You are running %s on your site.', 'wp-encrypt' ), '<strong>' . self::get_info( 'name' ) . '</strong>' ); ?>
+				<?php endif; ?>
+				<?php _e( 'This plugin provides you with an easy way to manage SSL certificates through Let&apos;s Encrypt.', 'wp-encrypt' ); ?>
+			</p>
+			<?php if ( current_user_can( 'manage_certificates' ) ) : ?>
+				<p>
+					<?php printf( __( 'To get started, please follow the steps on the <a href="%s">Settings page</a>.', 'wp-encrypt' ), $settings_page_url ); ?>
+				</p>
+			<?php endif; ?>
+			<?php
+		}
+
+		/**
+		 * Renders a network plugin information message.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $status The activation status of the plugin. Either 'activated' or 'active'.
+		 * @param string $context In which context we're currently in. Either 'site' or 'network'. Defaults to 'network'.
+		 */
+		public static function render_network_status_message( $status, $context = 'network' ) {
+			self::render_status_message( $status, $context );
+		}
+
+		/**
+		 * Uninstalls the plugin from a single site.
+		 *
+		 * This method is run on plugin deletion.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @return bool Whether the plugin was successfully uninstalled.
+		 */
+		public static function uninstall() {
+			// On a multisite, the plugin loader runs this method for each site which is not required for this plugin.
+			if ( is_multisite() ) {
+				return true;
+			}
+
+			delete_option( 'wp_encrypt_settings' );
+			delete_option( 'wp_encrypt_registration' );
+
+			return true;
+		}
+
+		/**
+		 * Uninstalls the plugin from a network.
+		 *
+		 * This method is run on plugin deletion.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @return bool Whether the plugin was successfully uninstalled.
+		 */
+		public static function network_uninstall() {
+			delete_site_option( 'wp_encrypt_settings' );
+			delete_site_option( 'wp_encrypt_registration' );
+
+			return true;
+		}
 	}
 }
