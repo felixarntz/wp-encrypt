@@ -5,6 +5,7 @@ Plugin URI:        https://wordpress.org/plugins/wp-encrypt/
 Author:            Felix Arntz
 Author URI:        https://leaves-and-love.net
 Contributors:      flixos90
+Donate link:       https://leaves-and-love.net/wordpress-plugins/
 Requires at least: 4.2
 Tested up to:      4.5.3
 Stable tag:        1.0.0-beta.1
