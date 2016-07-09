@@ -47,6 +47,7 @@ LaL_WP_Plugin_Loader::load_plugin( array(
 	'namespace'				=> 'WPENC',
 	'textdomain'			=> 'wp-encrypt',
 	'use_language_packs'	=> true,
+	'network_only'			=> true,
 ), array(
 	'phpversion'			=> '5.3.0',
 	'wpversion'				=> '4.2',
