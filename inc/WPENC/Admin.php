@@ -182,17 +182,26 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 					margin-bottom: 40px;
 				}
 
-				.remove {
-					margin-left: 6px;
-					line-height: 28px;
+				.remove,
+				.reset {
 					color: #aa0000;
 					text-decoration: none;
 				}
 
-				.remove:hover {
+				.remove:hover,
+				.reset:hover {
 					color: #ff0000;
 					text-decoration: none;
 					border: none;
+				}
+
+				.remove {
+					margin-left: 6px;
+					line-height: 28px;
+				}
+
+				.danger-headline {
+					color: #aa0000;
 				}
 			</style>
 			<div class="wrap">
@@ -259,6 +268,15 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 							<p><?php _e( 'Please check the Help tabs at the top of this page to learn how to set up the SSL certificate.', 'wp-encrypt' ); ?></p>
 						<?php endif; ?>
 					<?php endif; ?>
+				<?php endif; ?>
+
+				<?php if ( defined( 'WP_ENCRYPT_ENABLE_DANGER_ZONE' ) && WP_ENCRYPT_ENABLE_DANGER_ZONE && ( $account_registration_timestamp || $certificate_generation_timestamp ) ) : ?>
+					<h2 class="danger-headline"><?php _e( 'Danger Zone', 'wp-encrypt' ); ?></h2>
+					<p>
+						<?php _e( 'By clicking the button below, you will remove all existing certificate and key files permanently. Use this with extreme caution.', 'wp-encrypt' ); ?><br />
+						<strong><?php _e( 'Do not hit this button while your server is using any of those files.', 'wp-encrypt' ); ?></strong>
+					</p>
+					<a id="reset-button" class="reset" href="<?php echo $this->action_get_url( 'wpenc_reset' ); ?>"><?php _e( 'Reset', 'wp-encrypt' ); ?></a>
 				<?php endif; ?>
 			</div>
 			<?php

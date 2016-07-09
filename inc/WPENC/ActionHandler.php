@@ -35,6 +35,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			'register_account',
 			'generate_certificate',
 			'revoke_certificate',
+			'reset',
 		);
 
 		/**
@@ -192,6 +193,35 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			}
 
 			return __( 'Certificate revoked.', 'wp-encrypt' );
+		}
+
+		/**
+		 * Deletes all certificates, keys and challenges. Basically resets the plugin.
+		 *
+		 * This method is called through one of the action callbacks.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param array $data         The request data for the action.
+		 * @param bool  $network_wide Whether this action should be performed network-wide.
+		 * @return string|WP_Error The success message or an error object.
+		 */
+		protected function reset( $data = array(), $network_wide = false ) {
+			$filesystem_check = $this->maybe_request_filesystem_credentials( $network_wide );
+			if ( false === $filesystem_check ) {
+				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
+			}
+
+			$manager = CertificateManager::get();
+			$response = $manager->reset();
+			if ( is_wp_error( $response ) ) {
+				return $response;
+			}
+
+			delete_site_option( 'wp_encrypt_registration' );
+
+			return __( 'All certificates and keys have been successfully deleted.', 'wp-encrypt' );
 		}
 
 		/**

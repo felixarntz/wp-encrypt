@@ -231,5 +231,40 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 
 			return true;
 		}
+
+		/**
+		 * Deletes all certificates, keys and challenges.
+		 *
+		 * Use this method with extreme caution - do not use it when your server is currently using any of
+		 * those files.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return bool|WP_Error True if everything was deleted successfully, an error object otherwise.
+		 */
+		public function reset() {
+			$filesystem = Util::get_filesystem();
+
+			$paths = array(
+				Util::get_letsencrypt_certificates_dir_path(),
+				Util::get_letsencrypt_challenges_dir_path(),
+			);
+
+			foreach ( $paths as $path ) {
+				if ( $filesystem->is_dir( $path ) ) {
+					$filelist = $filesystem->dirlist( trailingslashit( $path ), true );
+					if ( is_array( $filelist ) ) {
+						foreach ( $filelist as $fileinfo ) {
+							if ( ! $filesystem->delete( trailingslashit( $path ) . $fileinfo['name'], true, $fileinfo['type'] ) ) {
+								return new WP_Error( 'cannot_delete_directory', sprintf( __( 'Unable to delete <code>%s</code>.', 'wp-encrypt' ), trailingslashit( $path ) . $fileinfo['name'] ) );
+							}
+						}
+					}
+				}
+			}
+
+			return true;
+		}
 	}
 }

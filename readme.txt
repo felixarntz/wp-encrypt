@@ -72,6 +72,10 @@ To change the directories where the certificates are being stored, please define
 
 The plugin only acts as a connection between your WordPress site and Let's Encrypt - it is used to obtain the certificate. WordPress cannot modify your server configuration to use it, that's why you need to take care of it yourself. However, you will find basic instructions in the plugin. After adjusting your server configuration, you also need to switch your site to HTTPS.
 
+= Something seems wrong and I would like to reset. How can I do that? =
+
+The plugin allows you to completely reset it. This will delete all certificates and keys created by the plugin. You must not reset the plugin while your server is using any of those files - if you need to reset, first unassign the certificates in your server configuration. Because the reset functionality is a critical area, it is hidden by default. You can enable it by defining a constant `WP_ENCRYPT_ENABLE_DANGER_ZONE` and set it to true. After having done so, you will see a new section called "Danger Zone" on the settings page.
+
 = Where should I submit my support request? =
 
 I preferably take support requests as [issues on Github](https://github.com/felixarntz/wp-encrypt/issues), so I would appreciate if you created an issue for your request there. However, if you don't have an account there and do not want to sign up, you can of course use the [wordpress.org support forums](https://wordpress.org/support/plugin/wp-encrypt) as well.
