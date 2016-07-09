@@ -8,8 +8,8 @@ Contributors:      flixos90
 Donate link:       https://leaves-and-love.net/wordpress-plugins/
 Requires at least: 4.2
 Tested up to:      4.5.3
-Stable tag:        1.0.0-beta.1
-Version:           1.0.0-beta.1
+Stable tag:        1.0.0-beta.2
+Version:           1.0.0-beta.2
 License:           GNU General Public License v3
 License URI:       http://www.gnu.org/licenses/gpl-3.0.html
 Tags:              lets encrypt, ssl, certificates, https, free ssl
@@ -93,6 +93,12 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 3. Generating a certificate with Let's Encrypt
 
 == Changelog ==
+
+= 1.0.0-beta.2 =
+* Added: a reset functionality has been introduced including UI (hidden by default)
+* Enhanced: error messages provide more detail about what exactly went wrong
+* Tweaked: updated the plugin initialization library to be compatible with WordPress 4.6
+* Fixed: fixed an error where the filesystem credentials form was posting to the wrong location
 
 = 1.0.0-beta.1 =
 * First official beta
