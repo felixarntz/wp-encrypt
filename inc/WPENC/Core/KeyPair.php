@@ -179,7 +179,7 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			if ( null === $this->public_key || $force_refresh ) {
 				$path = $this->path . '/' . self::PUBLIC_NAME;
 				if ( ! $filesystem->exists( $path ) ) {
-					return new WP_Error( 'public_key_missing', __( 'Missing public key.', 'wp-encrypt' ) );
+					return new WP_Error( 'public_key_missing', sprintf( __( 'Missing public key <code>%s</code>.', 'wp-encrypt' ), $path ) );
 				}
 				$this->public_key = $filesystem->get_contents( $path );
 			}
@@ -201,7 +201,7 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			if ( null === $this->private_key || $force_refresh ) {
 				$path = $this->path . '/' . self::PRIVATE_NAME;
 				if ( ! $filesystem->exists( $path ) ) {
-					return new WP_Error( 'private_key_missing', __( 'Missing private key.', 'wp-encrypt' ) );
+					return new WP_Error( 'private_key_missing', sprintf( __( 'Missing private key <code>%s</code>.', 'wp-encrypt' ), $path ) );
 				}
 				$this->private_key = $filesystem->get_contents( $path );
 			}
@@ -223,12 +223,12 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 			if ( null === $this->private_key_resource || $force_refresh ) {
 				$path = $this->path . '/' . self::PRIVATE_NAME;
 				if ( ! $filesystem->exists( $path ) ) {
-					return new WP_Error( 'private_key_missing', __( 'Missing private key.', 'wp-encrypt' ) );
+					return new WP_Error( 'private_key_missing', sprintf( __( 'Missing private key <code>%s</code>.', 'wp-encrypt' ), $path ) );
 				}
 
 				$private_key = openssl_pkey_get_private( 'file://' . $path );
 				if ( false === $private_key ) {
-					return new WP_Error( 'private_key_invalid', sprintf( __( 'Invalid private key. Original error message: %s', 'wp-encrypt' ), openssl_error_string() ) );
+					return new WP_Error( 'private_key_invalid', sprintf( __( 'Invalid private key <code>%1$s</code>. Original error message: %2$s', 'wp-encrypt' ), $path, openssl_error_string() ) );
 				}
 				$this->private_key_resource = $private_key;
 			}
@@ -252,7 +252,7 @@ if ( ! class_exists( 'WPENC\Core\KeyPair' ) ) {
 				}
 				$details = openssl_pkey_get_details( $private_key );
 				if ( false === $details ) {
-					return new WP_Error( 'private_key_details_invalid', sprintf( __( 'Could not retrieve details from private key. Original error message: %s', 'wp-encrypt' ), openssl_error_string() ) );
+					return new WP_Error( 'private_key_details_invalid', sprintf( __( 'Could not retrieve details from private key <code>%1$s</code>. Original error message: %2$s', 'wp-encrypt' ), $this->path . '/' . self::PRIVATE_NAME, openssl_error_string() ) );
 				}
 				$this->private_key_details = $details;
 			}

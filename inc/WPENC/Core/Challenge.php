@@ -60,7 +60,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 			});
 
 			if ( ! $challenge ) {
-				return new WP_Error( 'no_challenge_available', sprintf( __( 'No HTTP challenge available. Original response: %s', 'wp-encrypt' ), json_encode( $response ) ) );
+				return new WP_Error( 'no_challenge_available', sprintf( __( 'No HTTP challenge available for domain %1$s. Original response: %2$s', 'wp-encrypt' ), $domain, json_encode( $response ) ) );
 			}
 
 			$location = $client->get_last_location();
@@ -88,7 +88,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 
 			if ( $data !== trim( $filesystem->get_contents( $token_uri ) ) ) {
 				$filesystem->delete( $token_path );
-				return new WP_Error( 'challenge_self_failed', __( 'Challenge self check failed.', 'wp-encrypt' ) );
+				return new WP_Error( 'challenge_self_failed', sprintf( __( 'Challenge self check failed for domain %s.', 'wp-encrypt' ), $domain ) );
 			}
 
 			$result = $client->challenge( $challenge['uri'], $challenge['token'], $data );
@@ -98,7 +98,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 			do {
 				if ( empty( $result['status'] ) || 'invalid' === $result['status'] ) {
 					$filesystem->delete( $token_path );
-					return new WP_Error( 'challenge_remote_failed', __( 'Challenge remote check failed.', 'wp-encrypt' ) );
+					return new WP_Error( 'challenge_remote_failed', sprintf( __( 'Challenge remote check failed for domain %s.', 'wp-encrypt' ), $domain ) );
 				}
 
 				$done = 'pending' !== $result['status'];
@@ -109,7 +109,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 				$result = $client->request( $location, 'GET' );
 				if ( 'invalid' === $result['status'] ) {
 					$filesystem->delete( $token_path );
-					return new WP_Error( 'challenge_remote_failed', __( 'Challenge remote check failed.', 'wp-encrypt' ) );
+					return new WP_Error( 'challenge_remote_failed', sprintf( __( 'Challenge remote check failed for domain %s.', 'wp-encrypt' ), $domain ) );
 				}
 			} while ( ! $done );
 
