@@ -225,7 +225,7 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return true;
 			}
 
-			$url = $this->get_url( $network_wide );
+			$url = $this->get_form_post_url( $network_wide );
 			$extra_fields = array( 'action', '_wpnonce' );
 
 			return CoreUtil::setup_filesystem( $url, $extra_fields );
@@ -424,6 +424,22 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return network_admin_url( 'settings.php?page=wp_encrypt' );
 			}
 			return admin_url( 'options-general.php?page=wp_encrypt' );
+		}
+
+		/**
+		 * Returns the URL the WP Encrypt forms should submit to.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 *
+		 * @param boolean $network_wide Whether this is a network wide request.
+		 * @return string The form post URL.
+		 */
+		protected function get_form_post_url( $network_wide = false ) {
+			if ( $network_wide ) {
+				return network_admin_url( 'settings.php' );
+			}
+			return admin_url( 'options.php' );
 		}
 	}
 }

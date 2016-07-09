@@ -34,17 +34,10 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 		 * @return bool True if filesystem credentials are required, false otherwise.
 		 */
 		public static function needs_filesystem_credentials( $credentials = false ) {
-			$paths = array(
-				self::get_letsencrypt_certificates_dir_path(),
-				self::get_letsencrypt_challenges_dir_path(),
-			);
-
+			$paths = self::get_filesystem_paths();
 			$type = 'direct';
 			$is_direct = true;
 			foreach ( $paths as $key => $path ) {
-				if ( ! is_dir( $paths[ $key ] ) ) {
-					$paths[ $key ] = dirname( $paths[ $key ] );
-				}
 				$type = get_filesystem_method( array(), $paths[ $key ], true );
 				if ( 'direct' !== $type ) {
 					$is_direct = false;
@@ -85,17 +78,10 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 		public static function setup_filesystem( $form_post, $extra_fields = array() ) {
 			global $wp_filesystem;
 
-			$paths = array(
-				self::get_letsencrypt_certificates_dir_path(),
-				self::get_letsencrypt_challenges_dir_path(),
-			);
-
+			$paths = self::get_filesystem_paths();
 			$type = 'direct';
 			$is_direct = true;
 			foreach ( $paths as $key => $path ) {
-				if ( ! is_dir( $paths[ $key ] ) ) {
-					$paths[ $key ] = dirname( $paths[ $key ] );
-				}
 				$type = get_filesystem_method( array(), $paths[ $key ], true );
 				if ( 'direct' !== $type ) {
 					$is_direct = false;
@@ -117,7 +103,8 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			}
 
 			if ( ! WP_Filesystem( $credentials, $paths[0], true ) ) {
-				request_filesystem_credentials( $form_post, $type, true, $paths[0], $extra_fields, true );
+				$error = ( isset( $wp_filesystem ) && is_wp_error( $wp_filesystem->errors ) && $wp_filesystem->errors->get_error_code() ) ? $wp_filesystem->errors : true;
+				request_filesystem_credentials( $form_post, $type, $error, $paths[0], $extra_fields, true );
 				$data = ob_get_clean();
 
 				if ( ! empty( $data ) ) {
@@ -318,6 +305,33 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 			}
 
 			return array_unique( $all_domains );
+		}
+
+		/**
+		 * Returns the relevant paths that require filesystem access.
+		 *
+		 * If the inner directories of a path do not yet exist, the method will walk up the path tree
+		 * until it finds an existing directory to go from.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @static
+		 *
+		 * @return array An array of paths.
+		 */
+		private static function get_filesystem_paths() {
+			$paths = array(
+				self::get_letsencrypt_certificates_dir_path(),
+				self::get_letsencrypt_challenges_dir_path(),
+			);
+
+			foreach ( $paths as $key => $path ) {
+				while ( ! is_dir( $paths[ $key ] ) ) {
+					$paths[ $key ] = dirname( $paths[ $key ] );
+				}
+			}
+
+			return $paths;
 		}
 
 		/**
