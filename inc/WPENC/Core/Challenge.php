@@ -84,11 +84,15 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 			}
 			$filesystem->chmod( $token_path, 0644 );
 
-			$token_uri = Util::get_letsencrypt_challenges_dir_url() . '/' . $challenge['token'];
-
-			if ( $data !== trim( $filesystem->get_contents( $token_uri ) ) ) {
+			$response = wp_remote_get( Util::get_letsencrypt_challenges_dir_url() . '/' . $challenge['token'] );
+			if ( is_wp_error( $response ) ) {
 				$filesystem->delete( $token_path );
-				return new WP_Error( 'challenge_self_failed', sprintf( __( 'Challenge self check failed for domain %s.', 'wp-encrypt' ), $domain ) );
+				return new WP_Error( 'challenge_request_failed', sprintf( __( 'Challenge request failed for domain %s.', 'wp-encrypt' ), $domain ) );
+			}
+
+			if ( $data !== trim( wp_remote_retrieve_body( $response ) ) ) {
+				$filesystem->delete( $token_path );
+				return new WP_Error( 'challenge_self_check_failed', sprintf( __( 'Challenge self check failed for domain %s.', 'wp-encrypt' ), $domain ) );
 			}
 
 			$result = $client->challenge( $challenge['uri'], $challenge['token'], $data );
@@ -98,7 +102,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 			do {
 				if ( empty( $result['status'] ) || 'invalid' === $result['status'] ) {
 					$filesystem->delete( $token_path );
-					return new WP_Error( 'challenge_remote_failed', sprintf( __( 'Challenge remote check failed for domain %s.', 'wp-encrypt' ), $domain ) );
+					return new WP_Error( 'challenge_remote_check_failed', sprintf( __( 'Challenge remote check failed for domain %s.', 'wp-encrypt' ), $domain ) );
 				}
 
 				$done = 'pending' !== $result['status'];
@@ -109,7 +113,7 @@ if ( ! class_exists( 'WPENC\Core\Challenge' ) ) {
 				$result = $client->request( $location, 'GET' );
 				if ( 'invalid' === $result['status'] ) {
 					$filesystem->delete( $token_path );
-					return new WP_Error( 'challenge_remote_failed', sprintf( __( 'Challenge remote check failed for domain %s.', 'wp-encrypt' ), $domain ) );
+					return new WP_Error( 'challenge_remote_check_failed', sprintf( __( 'Challenge remote check failed for domain %s.', 'wp-encrypt' ), $domain ) );
 				}
 			} while ( ! $done );
 
