@@ -44,6 +44,15 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		protected static $is_multinetwork = null;
 
 		/**
+		 * Holds the admin class instance.
+		 *
+		 * @since 1.0.0
+		 * @access protected
+		 * @var WPENC\Admin|null
+		 */
+		protected $admin = null;
+
+		/**
 		 * Constructor.
 		 *
 		 * This is protected on purpose since it is called by the parent class' singleton.
@@ -79,8 +88,8 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 				add_filter( 'map_meta_cap', array( $this, 'map_meta_cap_non_multisite' ), 10, 4 );
 			}
 
-			$admin = new Admin( $context );
-			$admin->run();
+			$this->admin = new Admin( $context );
+			$this->admin->run();
 		}
 
 		/**
@@ -128,6 +137,137 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		}
 
 		/**
+		 * Returns the URL to the admin screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $context Context for the URL. Either 'site' or 'network'.
+		 * @return string URL to the admin screen.
+		 */
+		public static function get_admin_url( $context ) {
+			$url = '';
+
+			if ( 'network' !== $context ) {
+				$context = 'site';
+				$url = admin_url( 'options-general.php?page=wp_encrypt' );
+			} else {
+				$url = network_admin_url( 'settings.php?page=wp_encrypt' );
+			}
+
+			/**
+			 * Filters the URL to the admin screen.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param string $url     URL to the admin screen.
+			 * @param string $context Context for the URL. Either 'site' or 'network'.
+			 */
+			return apply_filters( 'wpenc_admin_url', $url, $context );
+		}
+
+		/**
+		 * Returns the URL that processes admin requests via GET or POST.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $context Context for the URL. Either 'site' or 'network'.
+		 * @param string $action  The action to perform or an empty string.
+		 * @return string URL to handle actions.
+		 */
+		public static function get_admin_action_url( $context, $action = '' ) {
+			$url = '';
+
+			if ( 'network' !== $context ) {
+				$context = 'site';
+				$url = admin_url( 'options.php' );
+			} else {
+				$url = network_admin_url( 'settings.php' );
+			}
+
+			if ( ! empty( $action ) ) {
+				$url = add_query_arg( 'action', $action, $url );
+				$url = wp_nonce_url( $url, 'wp_encrypt_action' );
+			}
+
+			/**
+			 * Filters the URL that processes admin requests via GET or POST.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param string $url     URL to handle actions.
+			 * @param string $context Context for the URL. Either 'site' or 'network'.
+			 * @param string $action  The action to perform or an empty string.
+			 */
+			return apply_filters( 'wpenc_admin_action_url', $url, $context, $action );
+		}
+
+		/**
+		 * Returns the parent file name for the admin screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $context Context for the admin screen. Either 'site' or 'network'.
+		 * @return string Parent file name of the admin screen.
+		 */
+		public static function get_admin_parent_file( $context ) {
+			$parent_file = '';
+
+			if ( 'network' !== $context ) {
+				$context = 'site';
+				$parent_file = 'options-general.php';
+			} else {
+				$parent_file = 'settings.php';
+			}
+
+			/**
+			 * Filters the admin screen's parent file name.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param string $parent_file Parent file of the admin screen.
+			 * @param string $context     Context for the admin screen. Either 'site' or 'network'.
+			 */
+			return apply_filters( 'wpenc_admin_parent_file', $parent_file, $context );
+		}
+
+		/**
+		 * Returns the action file name the admin screen forms should POST to.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $context Context for the admin screen. Either 'site' or 'network'.
+		 * @return string Action file name of the admin screen.
+		 */
+		public static function get_admin_action_file( $context ) {
+			$action_file = '';
+
+			if ( 'network' !== $context ) {
+				$context = 'site';
+				$action_file = 'options.php';
+			} else {
+				$action_file = 'settings.php';
+			}
+
+			/**
+			 * Filters the admin screen's parent file name.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param string $action_file Action file name of the admin screen.
+			 * @param string $context     Context for the admin screen. Either 'site' or 'network'.
+			 */
+			return apply_filters( 'wpenc_admin_action_file', $action_file, $context );
+		}
+
+		/**
 		 * Adds a link to the plugin settings page.
 		 *
 		 * This method is automatically invoked by the plugin loader class.
@@ -149,7 +289,7 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			}
 
 			$custom_links = array(
-				'<a href="' . admin_url( 'options-general.php?page=wp_encrypt' ) . '">' . __( 'Settings', 'wp-encrypt' ) . '</a>',
+				'<a href="' . self::get_admin_url( 'site' ) . '">' . __( 'Settings', 'wp-encrypt' ) . '</a>',
 			);
 
 			return array_merge( $custom_links, $links );
@@ -173,7 +313,7 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			}
 
 			$custom_links = array(
-				'<a href="' . network_admin_url( 'settings.php?page=wp_encrypt' ) . '">' . __( 'Settings', 'wp-encrypt' ) . '</a>',
+				'<a href="' . self::get_admin_url( 'network' ) . '">' . __( 'Settings', 'wp-encrypt' ) . '</a>',
 			);
 
 			return array_merge( $custom_links, $links );
@@ -190,7 +330,7 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		 * @param string $context In which context we're currently in. Either 'site' or 'network'. Defaults to 'site'.
 		 */
 		public static function render_status_message( $status, $context = 'site' ) {
-			$settings_page_url = 'network' === $context ? network_admin_url( 'settings.php?page=wp_encrypt' ) : admin_url( 'options-general.php?page=wp_encrypt' );
+			$settings_page_url = self::get_admin_url( $context );
 
 			?>
 			<p>

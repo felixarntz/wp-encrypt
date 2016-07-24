@@ -114,11 +114,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		 * @access public
 		 */
 		public function init_menu() {
-			$parent = 'options-general.php';
-			if ( 'network' === $this->context ) {
-				$parent = 'settings.php';
-			}
-			$page_hook = add_submenu_page( $parent, __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_certificates', self::PAGE_SLUG, array( $this, 'render_page' ) );
+			$page_hook = add_submenu_page( App::get_admin_parent_file( $this->context ), __( 'WP Encrypt', 'wp-encrypt' ), __( 'WP Encrypt', 'wp-encrypt' ), 'manage_certificates', self::PAGE_SLUG, array( $this, 'render_page' ) );
 
 			add_action( 'load-' . $page_hook, array( $this, 'add_screen_help' ) );
 		}
@@ -166,7 +162,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 			$has_certificate = 0 < count( $site_domains );
 
-			$form_action = 'network' === $this->context ? 'settings.php' : 'options.php';
+			$form_action = App::get_admin_action_file( $this->context );
 
 			$primary = 'save';
 			if ( Util::get_option( 'valid' ) ) {
@@ -249,7 +245,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 							<?php $this->action_post_fields( 'wpenc_generate_certificate' ); ?>
 							<?php submit_button( __( 'Generate Certificate', 'wp-encrypt' ), ( 'generate' === $primary ? 'primary' : 'secondary' ), 'submit', false, array( 'id' => 'generate-certificate-button' ) ); ?>
 							<?php if ( $has_certificate ) : ?>
-								<a id="revoke-certificate-button" class="remove" href="<?php echo $this->action_get_url( 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
+								<a id="revoke-certificate-button" class="remove" href="<?php echo App::get_admin_action_url( $this->context, 'wpenc_revoke_certificate' ); ?>"><?php _e( 'Revoke Certificate', 'wp-encrypt' ); ?></a>
 							<?php endif; ?>
 						</form>
 
@@ -276,7 +272,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 						<?php _e( 'By clicking the button below, you will remove all existing certificate and key files permanently. Use this with extreme caution.', 'wp-encrypt' ); ?><br />
 						<strong><?php _e( 'Do not hit this button while your server is using any of those files.', 'wp-encrypt' ); ?></strong>
 					</p>
-					<a id="reset-button" class="reset" href="<?php echo $this->action_get_url( 'wpenc_reset' ); ?>"><?php _e( 'Reset', 'wp-encrypt' ); ?></a>
+					<a id="reset-button" class="reset" href="<?php echo App::get_admin_action_url( $this->context, 'wpenc_reset' ); ?>"><?php _e( 'Reset', 'wp-encrypt' ); ?></a>
 				<?php endif; ?>
 			</div>
 			<?php
@@ -401,11 +397,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				return;
 			}
 
-			if ( 'network' === $this->context ) {
-				$url = network_admin_url( 'settings.php?page=wp_encrypt' );
-			} else {
-				$url = admin_url( 'options-general.php?page=wp_encrypt' );
-			}
+			$url = App::get_admin_url( $this->context );
 
 			if ( Util::get_option( 'autogenerate_certificate' ) ) {
 				$text = _n( 'The Let&apos;s Encrypt certificate will expire in %1$s day. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', 'The Let&apos;s Encrypt certificate will expire in %1$s days. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
@@ -709,25 +701,6 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 		protected function action_post_fields( $action ) {
 			echo '<input type="hidden" name="action" value="' . $action . '" />';
 			wp_nonce_field( 'wp_encrypt_action' );
-		}
-
-		/**
-		 * Returns the URL to run an action.
-		 *
-		 * The plugin only uses this for the `revoke_certificate` action. The `register_account` and
-		 * `generate_certificate` actions are invoked by a POST request (a form).
-		 *
-		 * @since 1.0.0
-		 * @access protected
-		 *
-		 * @param string $action The action the URL should be returned for.
-		 * @return string The URL to trigger the action.
-		 */
-		protected function action_get_url( $action ) {
-			$url = ( 'network' === $this->context ) ? network_admin_url( 'settings.php' ) : admin_url( 'options-general.php' );
-			$url = add_query_arg( 'action', $action, $url );
-			$url = wp_nonce_url( $url, 'wp_encrypt_action' );
-			return $url;
 		}
 
 		/**
