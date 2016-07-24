@@ -8,8 +8,8 @@ Contributors:      flixos90
 Donate link:       https://leaves-and-love.net/wordpress-plugins/
 Requires at least: 4.2
 Tested up to:      4.5.3
-Stable tag:        1.0.0-beta.2
-Version:           1.0.0-beta.2
+Stable tag:        1.0.0-beta.3
+Version:           1.0.0-beta.3
 License:           GNU General Public License v3
 License URI:       http://www.gnu.org/licenses/gpl-3.0.html
 Tags:              lets encrypt, ssl, certificates, https, free ssl
@@ -29,6 +29,8 @@ The plugin is fully compatible with Multisite and Multinetwork. In a Multisite i
 = Requirements =
 
 This plugin requires you to run at least PHP 5.3 on your server. You also need to have the `cURL` and `OpenSSL` extensions active. Please check with your hosting provider if you're not sure whether your server meets these requirements or how to set them up. You also need to be able to adjust the server configuration to use the certificate the plugin obtains.
+
+If you don't have permissions to modify the server configuration, you might be able to still use the certificates if your host provides an interface to upload your own SSL certificates. In that case you can simply upload the generated certificate files there.
 
 = Notes =
 
