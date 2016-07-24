@@ -1,5 +1,11 @@
 == Changelog ==
 
+= 1.0.0-beta.3 =
+* Added: plugin main class instance can now easily be accessed via a `wpenc()` function
+* Enhanced: the admin class instance is now publicly accessible through a `WPENC\App::admin()` method
+* Enhanced: the admin screen and form POST urls are now managed by single dedicated methods respectively and can be filtered
+* Fixed: use `wp_remote_get()` for challenge self check to be more error-prone
+
 = 1.0.0-beta.2 =
 * Added: a reset functionality has been introduced including UI (hidden by default)
 * Enhanced: error messages provide more detail about what exactly went wrong

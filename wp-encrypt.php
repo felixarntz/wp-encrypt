@@ -58,3 +58,14 @@ LaL_WP_Plugin_Loader::load_plugin( array(
 		'openssl_csr_new',
 	),
 ) );
+
+/**
+ * Returns the WP Encrypt main class instance.
+ *
+ * @since 1.0.0
+ *
+ * @return WPENC\App|null The WP Encrypt instance or null if failed to initialize.
+ */
+function wpenc() {
+	return LaL_WP_Plugin_Loader::get_plugin( 'wp-encrypt' );
+}
