@@ -93,6 +93,18 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 		}
 
 		/**
+		 * Returns the admin class instance.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @return WPENC\Admin|null The admin class instance or null prior to initialization.
+		 */
+		public function admin() {
+			return $this->admin;
+		}
+
+		/**
 		 * Ensures that, on a regular site, the admin has the capabilities to manage certificates.
 		 *
 		 * @since 1.0.0
