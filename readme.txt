@@ -96,6 +96,10 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 
 == Changelog ==
 
+= 1.0.0-beta.4 =
+* Added: a link to the Let's Encrypt Subscriber Agreement is now displayed in the admin interface
+* Fixed: plugin now supports using the latest Let's Encrypt Subscriber Agreement from August 1st, 2016
+
 = 1.0.0-beta.3 =
 * Added: plugin main class instance can now easily be accessed via a `wpenc()` function
 * Enhanced: the admin class instance is now publicly accessible through a `WPENC\App::admin()` method

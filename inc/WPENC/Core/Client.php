@@ -94,13 +94,6 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 		const RESOURCE_NEW = 'new-cert';
 
 		/**
-		 * The license document URL.
-		 *
-		 * @since 1.0.0
-		 */
-		const LICENSE_URL = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf';
-
-		/**
 		 * Singleton instance.
 		 *
 		 * @since 1.0.0
@@ -172,12 +165,48 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 		private $last_links = null;
 
 		/**
+		 * Array of license document URLs.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @var array
+		 */
+		private $licenses = array();
+
+		/**
 		 * Constructor.
+		 *
+		 * Sets the license document URLs.
 		 *
 		 * @since 1.0.0
 		 * @access private
 		 */
-		private function __construct() {}
+		private function __construct() {
+			// Newer licenses must come first.
+			$this->licenses = array(
+				'2016-08-01'	=> 'https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf',
+				'2015-07-27'	=> 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf',
+			);
+		}
+
+		/**
+		 * Returns the URL to the current license document.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 * @return string URL to the license document.
+		 */
+		public function get_license_url() {
+			$now = current_time( 'timestamp' );
+
+			foreach ( $this->licenses as $date => $url ) {
+				if ( $now >= strtotime( $date ) ) {
+					return $url;
+				}
+			}
+
+			return '';
+		}
 
 		/**
 		 * Registers an account with Let's Encrypt.
@@ -190,7 +219,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 		public function register() {
 			return $this->signed_request( self::ENDPOINT_REGISTER, array(
 				'resource'		=> self::RESOURCE_REGISTER,
-				'agreement'		=> self::LICENSE_URL,
+				'agreement'		=> $this->get_license_url(),
 			) );
 		}
 

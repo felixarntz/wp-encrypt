@@ -10,6 +10,7 @@
 namespace WPENC;
 
 use WPENC\Core\Util as CoreUtil;
+use WPENC\Core\Client as Client;
 use WPENC\Core\Certificate as Certificate;
 use WPENC\Core\KeyPair as KeyPair;
 
@@ -214,7 +215,8 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 
 					<form class="wp-encrypt-form" method="post" action="<?php echo $form_action; ?>">
 						<p class="description">
-							<?php _e( 'By clicking on this button, you will register an account for the above organization with Let&apos;s Encrypt.', 'wp-encrypt' ); ?>
+							<?php _e( 'By clicking on this button, you will register an account for the above organization with Let&rsquo;s Encrypt.', 'wp-encrypt' ); ?>
+							<?php printf( __( 'By registering, you verify that you have read and accepted the <a href="%s" target="_blank">Let&rsquo;s Encrypt Subscriber Agreement</a>.', 'wp-encrypt' ), Client::get()->get_license_url() ); ?>
 							<?php if ( $account_registration_timestamp ) : ?>
 								<br />
 								<?php printf( __( 'Your account was registered on %1$s at %2$s.', 'wp-encrypt' ), date_i18n( get_option( 'date_format' ), $account_registration_timestamp ), date_i18n( get_option( 'time_format' ), $account_registration_timestamp ) ); ?>
@@ -345,7 +347,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 					$description = __( 'Generate a global certificate for all networks? This will ensure that all sites in your entire WordPress setup are covered.', 'wp-encrypt' );
 					break;
 				case 'autogenerate_certificate':
-					$description = __( 'Automatically regenerate the certificate prior to expiration? A Let&apos;s Encrypt certificate is valid for 90 days.', 'wp-encrypt' );
+					$description = __( 'Automatically regenerate the certificate prior to expiration? A Let&rsquo;s Encrypt certificate is valid for 90 days.', 'wp-encrypt' );
 					break;
 				case 'show_warning':
 					$description = __( 'Show a warning across the admin when the certificate is close to expire?', 'wp-encrypt' );
@@ -400,9 +402,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$url = App::get_admin_url( $this->context );
 
 			if ( Util::get_option( 'autogenerate_certificate' ) ) {
-				$text = _n( 'The Let&apos;s Encrypt certificate will expire in %1$s day. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', 'The Let&apos;s Encrypt certificate will expire in %1$s days. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
+				$text = _n( 'The Let&rsquo;s Encrypt certificate will expire in %1$s day. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', 'The Let&rsquo;s Encrypt certificate will expire in %1$s days. It will be automatically renewed prior to expiration, but you can also manually renew it <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
 			} else {
-				$text = _n( 'The Let&apos;s Encrypt certificate will expire in %1$s day. Please renew it soon <a href="%2$s">here</a>.', 'The Let&apos;s Encrypt certificate will expire in %1$s days. Please renew it soon <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
+				$text = _n( 'The Let&rsquo;s Encrypt certificate will expire in %1$s day. Please renew it soon <a href="%2$s">here</a>.', 'The Let&rsquo;s Encrypt certificate will expire in %1$s days. Please renew it soon <a href="%2$s">here</a>.', $diff, 'wp-encrypt' );
 			}
 
 			?>
@@ -513,7 +515,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 					<?php _e( 'Hit the <em>Save Changes</em> button when you are done with the setup.', 'wp-encrypt' ); ?>
 				</li>
 				<li>
-					<?php _e( 'A new section will appear where you need to sign up for an account with Let&apos;s Encrypt.', 'wp-encrypt' ); ?>
+					<?php _e( 'A new section will appear where you need to sign up for an account with Let&rsquo;s Encrypt.', 'wp-encrypt' ); ?>
 					<?php _e( 'You do not need to worry about this account as it will only be used to generate the SSL certificates later.', 'wp-encrypt' ); ?><br />
 					<?php _e( 'Click on <em>Register Account</em> to sign up with the data you specified as account settings in the first step.', 'wp-encrypt' ); ?>
 				</li>
@@ -557,7 +559,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 				<?php _e( 'In order to use the certificate you acquired, you need to configure SSL and set the paths to the certificate and the private key in your server configuration.', 'wp-encrypt' ); ?>
 			</p>
 			<p>
-				<?php _e( 'While the Let&apos;s Encrypt service and this plugin make it easy to manage SSL certificates, you still need to manually set up SSL on your web server.', 'wp-encrypt' ); ?>
+				<?php _e( 'While the Let&rsquo;s Encrypt service and this plugin make it easy to manage SSL certificates, you still need to manually set up SSL on your web server.', 'wp-encrypt' ); ?>
 				<?php _e( 'This is a one-time-only process you need to perform after you have obtained your first certificate.', 'wp-encrypt' ); ?>
 			</p>
 			<p>
@@ -586,7 +588,7 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 		public function render_help_about_letsencrypt() {
 			?>
 			<p>
-				<?php _e( 'Let&apos;s Encrypt is a free, automated, and open certificate authority brought to you by the non-profit Internet Security Research Group (ISRG).', 'wp-encrypt' ); ?>
+				<?php _e( 'Let&rsquo;s Encrypt is a free, automated, and open certificate authority brought to you by the non-profit Internet Security Research Group (ISRG).', 'wp-encrypt' ); ?>
 				<?php _e( 'The project aims to promote encrypted connections on the web, ease the process of obtaining valid SSL certificates and make it possible to generate them for free.', 'wp-encrypt' ); ?><br />
 				<?php printf( __( 'For more information, please visit <a href="%s">their website</a>.', 'wp-encrypt' ), 'https://letsencrypt.org/' ); ?>
 			</p>
