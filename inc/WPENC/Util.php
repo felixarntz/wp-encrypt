@@ -248,10 +248,14 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 		 * @return string The domain for the network.
 		 */
 		public static function get_network_domain( $network_id = null ) {
-			if ( null === $network_id ) {
-				$network = get_current_site();
+			if ( version_compare( get_bloginfo( 'version' ), '4.6', '<' ) ) {
+				if ( ! $network_id ) {
+					$network = get_current_site();
+				} else {
+					$network = wp_get_network( $network_id );
+				}
 			} else {
-				$network = wp_get_network( $network_id );
+				$network = get_network( $network_id );
 			}
 
 			return $network->domain;
@@ -273,10 +277,14 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 		 * @return array The site domains.
 		 */
 		public static function get_network_addon_domains( $network_id = null, $global = false ) {
-			if ( ! $network_id ) {
-				$network = get_current_site();
+			if ( version_compare( get_bloginfo( 'version' ), '4.6', '<' ) ) {
+				if ( ! $network_id ) {
+					$network = get_current_site();
+				} else {
+					$network = wp_get_network( $network_id );
+				}
 			} else {
-				$network = wp_get_network( $network_id );
+				$network = get_network( $network_id );
 			}
 
 			if ( ! $global ) {

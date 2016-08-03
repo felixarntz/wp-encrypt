@@ -96,6 +96,9 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 
 == Changelog ==
 
+= 1.0.0-beta.5 =
+* Fixed: use new Multisite functions for WordPress 4.6
+
 = 1.0.0-beta.4 =
 * Added: a link to the Let's Encrypt Subscriber Agreement is now displayed in the admin interface
 * Fixed: plugin now supports using the latest Let's Encrypt Subscriber Agreement from August 1st, 2016
