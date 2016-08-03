@@ -34,7 +34,7 @@ var config = {
 	contributors: [ 'flixos90' ].join( ', ' ),
 	donateLink: 'https://leaves-and-love.net/wordpress-plugins/',
 	minRequired: '4.2',
-	testedUpTo: '4.5.3',
+	testedUpTo: '4.6',
 	translateURI: 'https://translate.wordpress.org/projects/wp-plugins/' + pkg.name,
 	network: true
 };
