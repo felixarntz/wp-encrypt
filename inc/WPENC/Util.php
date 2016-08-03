@@ -196,13 +196,22 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 		public static function get_network_site_ids( $global = false ) {
 			$ids = array();
 
-			$args = array();
-			if ( $global ) {
-				$args['network_id'] = 0;
-			}
+			if ( version_compare( get_bloginfo( 'version' ), '4.6', '<' ) ) {
+				$args = array();
+				if ( $global ) {
+					$args['network_id'] = 0;
+				}
 
-			foreach ( wp_get_sites( $args ) as $site ) {
-				$ids[] = $site['blog_id'];
+				foreach ( wp_get_sites( $args ) as $site ) {
+					$ids[] = $site['blog_id'];
+				}
+			} else {
+				$args = array( 'fields' => 'ids' );
+				if ( ! $global ) {
+					$args['network_id'] = get_current_network_id();
+				}
+
+				$ids = get_sites( $args );
 			}
 
 			return $ids;
@@ -264,27 +273,41 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 		 * @return array The site domains.
 		 */
 		public static function get_network_addon_domains( $network_id = null, $global = false ) {
-			$network_id = false;
+			if ( ! $network_id ) {
+				$network = get_current_site();
+			} else {
+				$network = wp_get_network( $network_id );
+			}
 
 			if ( ! $global ) {
-				if ( null === $network_id ) {
-					$network = get_current_site();
-				} else {
-					$network = wp_get_network( $network_id );
-				}
 				$network_id = $network->id;
+			} else {
+				$network_id = false;
 			}
 
 			$addon_domains = array();
 
-			$sites = wp_get_sites( array(
-				'network_id'	=> $network_id,
-			) );
+			$sites = array();
+			if ( version_compare( get_bloginfo( 'version' ), '4.6', '<' ) ) {
+				$sites = wp_get_sites( array(
+					'network_id'	=> $network_id,
+				) );
+			} else {
+				$args = array( 'domain__not_in' => array( $network->domain ) );
+				if ( $network_id ) {
+					$args['network_id'] = $network_id;
+				}
+				$sites = get_sites( $args );
+			}
+
 			foreach ( $sites as $site ) {
-				if ( $site['domain'] === $network->domain || in_array( $site['domain'], $addon_domains, true ) ) {
+				if ( is_array( $site ) ) {
+					$site = (object) $site;
+				}
+				if ( $site->domain === $network->domain || in_array( $site->domain, $addon_domains, true ) ) {
 					continue;
 				}
-				$addon_domains[] = $site['domain'];
+				$addon_domains[] = $site->domain;
 			}
 
 			return $addon_domains;
