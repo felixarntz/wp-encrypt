@@ -8,8 +8,8 @@ Contributors:      flixos90
 Donate link:       https://leaves-and-love.net/wordpress-plugins/
 Requires at least: 4.2
 Tested up to:      4.6
-Stable tag:        1.0.0-beta.4
-Version:           1.0.0-beta.4
+Stable tag:        1.0.0-beta.5
+Version:           1.0.0-beta.5
 License:           GNU General Public License v3
 License URI:       http://www.gnu.org/licenses/gpl-3.0.html
 Tags:              lets encrypt, ssl, certificates, https, free ssl
