@@ -398,7 +398,7 @@ if ( ! class_exists( 'WPENC\Core\Client' ) ) {
 
 			$url = $endpoint;
 			if ( false === strpos( $url, 'http://' ) && false === strpos( $url, 'https://' ) ) {
-				$url = self::API_URL . '/' . $endpoint;
+				$url = self::API_URL . '/' . ltrim( $endpoint, '/' );
 			}
 
 			$response = wp_remote_request( $url, $args );

@@ -96,6 +96,9 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 
 == Changelog ==
 
+= 1.0.0-beta.6 =
+* Fixed: `cURL error 3: malformed` does not happen anymore on WordPress 4.6
+
 = 1.0.0-beta.5 =
 * Fixed: use new Multisite functions for WordPress 4.6
 
