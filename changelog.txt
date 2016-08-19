@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 1.0.0-beta.7 =
+* Enhanced: Let's Encrypt API errors are now being printed out for more transparent errors
+
 = 1.0.0-beta.6 =
 * Fixed: `cURL error 3: malformed` does not happen anymore on WordPress 4.6
 

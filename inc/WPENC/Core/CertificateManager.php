@@ -80,15 +80,7 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			}
 
 			if ( isset( $response['status'] ) && 200 !== absint( $response['status'] ) ) {
-				$code = 'letsencrypt_error';
-				$message = __( 'Unknown error', 'wp-encrypt' );
-				if ( isset( $response['type'] ) ) {
-					$code = 'letsencrypt_' . str_replace( ':', '_', $response['type'] );
-				}
-				if ( isset( $response['detail'] ) ) {
-					$message = $response['detail'];
-				}
-				return new WP_Error( $code, $message );
+				return $this->parse_wp_error( $response );
 			}
 
 			return $response;
@@ -152,7 +144,7 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			}
 
 			if ( 201 !== $client->get_last_code() ) {
-				return new WP_Error( 'new_cert_invalid_response_code', __( 'Invalid response code for new certificate request.', 'wp-encrypt' ) );
+				return $this->parse_wp_error( $result, 'new_cert_invalid_response_code', __( 'Invalid response code for new certificate request.', 'wp-encrypt' ) );
 			}
 
 			$location = $client->get_last_location();
@@ -180,7 +172,7 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 					}
 					$done = true;
 				} else {
-					return new WP_Error( 'new_cert_invalid_response_code', __( 'Invalid response code for new certificate request.', 'wp-encrypt' ) );
+					return $this->parse_wp_error( $result, 'new_cert_invalid_response_code', __( 'Invalid response code for new certificate request.', 'wp-encrypt' ) );
 				}
 			} while ( ! $done );
 
@@ -226,7 +218,7 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			}
 
 			if ( 200 !== $client->get_last_code() ) {
-				return new WP_Error( 'revoke_cert_invalid_response_code', __( 'Invalid response code for revoke certificate request.', 'wp-encrypt' ) );
+				return $this->parse_wp_error( $result, 'revoke_cert_invalid_response_code', __( 'Invalid response code for revoke certificate request.', 'wp-encrypt' ) );
 			}
 
 			return true;
@@ -265,6 +257,38 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			}
 
 			return true;
+		}
+
+		/**
+		 * Parses a Let's Encrypt API response into a WP_Error object.
+		 *
+		 * @since 1.0.0
+		 * @access private
+		 *
+		 * @param string|array $response The API response.
+		 * @param bool         $code     Optional. The default error code.
+		 * @param bool         $message  Optional. The default error message.
+		 * @return WP_Error The error object.
+		 */
+		private function parse_wp_error( $response, $code = false, $message = false ) {
+			if ( ! $code ) {
+				$code = 'letsencrypt_error';
+			}
+
+			if ( ! $message ) {
+				$message = __( 'Unknown error', 'wp-encrypt' );
+			}
+
+			if ( is_array( $response ) ) {
+				if ( isset( $response['type'] ) ) {
+					$code = 'letsencrypt_' . str_replace( ':', '_', $response['type'] );
+				}
+				if ( isset( $response['detail'] ) && is_string( $response['detail'] ) ) {
+					$message = __( 'Let&rsquo;s Encrypt', 'wp-encrypt' ) . ': ' . str_replace( '::', '-', $response['detail'] );
+				}
+			}
+
+			return new WP_Error( $code, $message );
 		}
 	}
 }
