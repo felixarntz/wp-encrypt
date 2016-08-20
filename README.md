@@ -1,3 +1,5 @@
+[![WordPress plugin](https://img.shields.io/wordpress/plugin/v/wp-encrypt.svg?maxAge=2592000)](https://wordpress.org/plugins/wp-encrypt/)
+[![WordPress](https://img.shields.io/wordpress/v/wp-encrypt.svg?maxAge=2592000)](https://wordpress.org/plugins/wp-encrypt/)
 [![Code Climate](https://codeclimate.com/github/felixarntz/wp-encrypt/badges/gpa.svg)](https://codeclimate.com/github/felixarntz/wp-encrypt)
 [![Latest Stable Version](https://poser.pugx.org/felixarntz/wp-encrypt/version)](https://packagist.org/packages/felixarntz/wp-encrypt)
 [![License](https://poser.pugx.org/felixarntz/wp-encrypt/license)](https://packagist.org/packages/felixarntz/wp-encrypt)
