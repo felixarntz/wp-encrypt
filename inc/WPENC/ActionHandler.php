@@ -103,6 +103,14 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			$manager = CertificateManager::get();
 			$response = $manager->register_account();
 			if ( is_wp_error( $response ) ) {
+				$data = $response->get_error_data();
+				if ( is_array( $data ) && isset( $data['location'] ) ) {
+					$response = array_merge( Util::get_registration_info( 'account' ), $data );
+					Util::set_registration_info( 'account', $response );
+
+					return __( 'Account was already registered before.', 'wp-encrypt' );
+				}
+
 				return $response;
 			}
 

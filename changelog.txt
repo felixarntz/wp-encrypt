@@ -1,6 +1,7 @@
 == Changelog ==
 
 = 1.0.0-beta.7 =
+* Enhanced: If an account has already been registered, the plugin will now fetch the details instead of failing
 * Enhanced: Let's Encrypt API errors are now being printed out for more transparent errors
 
 = 1.0.0-beta.6 =

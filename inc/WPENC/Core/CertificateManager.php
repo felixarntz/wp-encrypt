@@ -80,8 +80,43 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 			}
 
 			if ( isset( $response['status'] ) && 200 !== absint( $response['status'] ) ) {
+				$data = '';
+				if ( 409 === absint( $response['status'] ) ) {
+					$data = $this->get_account( Client::get()->get_last_location() );
+					if ( is_wp_error( $data ) ) {
+						$data = '';
+					}
+				}
+				return $this->parse_wp_error( $response, false, false, $data );
+			}
+
+			$response['location'] = Client::get()->get_last_location();
+
+			return $response;
+		}
+
+		/**
+		 * Retrieves information about a Let's Encrypt account.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 *
+		 * @param string $location Endpoint URL for the account.
+		 * @return array|WP_Error The response if successful, an error object otherwise.
+		 */
+		public function get_account( $location ) {
+			$response = Client::get()->signed_request( $location, array(
+				'resource' => 'reg',
+			) );
+			if ( is_wp_error( $response ) ) {
+				return $response;
+			}
+
+			if ( isset( $response['status'] ) && 200 !== absint( $response['status'] ) ) {
 				return $this->parse_wp_error( $response );
 			}
+
+			$response['location'] = $location;
 
 			return $response;
 		}
@@ -268,9 +303,10 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 		 * @param string|array $response The API response.
 		 * @param bool         $code     Optional. The default error code.
 		 * @param bool         $message  Optional. The default error message.
+		 * @param mixed        $data     Optional. Arbitrary data to pass into the error object.
 		 * @return WP_Error The error object.
 		 */
-		private function parse_wp_error( $response, $code = false, $message = false ) {
+		private function parse_wp_error( $response, $code = false, $message = false, $data = '' ) {
 			if ( ! $code ) {
 				$code = 'letsencrypt_error';
 			}
@@ -288,7 +324,7 @@ if ( ! class_exists( 'WPENC\Core\CertificateManager' ) ) {
 				}
 			}
 
-			return new WP_Error( $code, $message );
+			return new WP_Error( $code, $message, $data );
 		}
 	}
 }

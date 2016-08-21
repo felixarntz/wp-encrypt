@@ -100,7 +100,9 @@ if ( ! class_exists( 'WPENC\Util' ) ) {
 				$field = 'certificate';
 			}
 
-			$value['_wp_time'] = current_time( 'mysql' );
+			if ( 'certificate' === $field || ! isset( $value['_wp_time'] ) ) {
+				$value['_wp_time'] = current_time( 'mysql' );
+			}
 
 			$options = get_site_option( 'wp_encrypt_registration', array() );
 			$options[ $field ] = $value;

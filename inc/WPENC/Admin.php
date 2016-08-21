@@ -150,7 +150,9 @@ if ( ! class_exists( 'WPENC\Admin' ) ) {
 			$certificate_generation_timestamp = false;
 			$site_domains = array();
 
-			if ( isset( $account_registration_info['_wp_time'] ) ) {
+			if ( isset( $account_registration_info['createdAt'] ) ) {
+				$account_registration_timestamp = strtotime( $account_registration_info['createdAt'] ) + HOUR_IN_SECONDS * get_option( 'gmt_offset' );
+			} elseif ( isset( $account_registration_info['_wp_time'] ) ) {
 				$account_registration_timestamp = strtotime( $account_registration_info['_wp_time'] );
 			}
 
