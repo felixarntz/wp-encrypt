@@ -149,6 +149,20 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 			$domain = $network_wide ? Util::get_network_domain() : Util::get_site_domain();
 			$addon_domains = $network_wide ? Util::get_network_addon_domains( null, $global ) : array();
 
+			/**
+			 * Filters the addon domains to create the certificate for.
+			 *
+			 * Using this filter basically allows to generate the certificate for any URLs,
+			 * even those outside of the WordPress installation.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param array  $addon_domains The addon domains.
+			 * @param string $domain        The root domain for the certificate.
+			 * @param bool   $network_wide  Whether this certificate is created for an entire network.
+			 */
+			$addon_domains = apply_filters( 'wpenc_addon_domains', $addon_domains, $domain, $network_wide );
+
 			$manager = CertificateManager::get();
 			$response = $manager->generate_certificate( $domain, $addon_domains, array(
 				'ST'	=> Util::get_option( 'country_name' ),

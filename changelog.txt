@@ -1,6 +1,7 @@
 == Changelog ==
 
 = 1.0.0-beta.7 =
+* Added: New filter `wpenc_addon_domains` allows filtering the domains to generate the certificate for
 * Enhanced: If an account has already been registered, the plugin will now fetch the details instead of failing
 * Enhanced: Let's Encrypt API errors are now being printed out for more transparent errors
 
