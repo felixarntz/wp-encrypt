@@ -8,8 +8,8 @@ Contributors:      flixos90
 Donate link:       https://leaves-and-love.net/wordpress-plugins/
 Requires at least: 4.2
 Tested up to:      4.6
-Stable tag:        1.0.0-beta.6
-Version:           1.0.0-beta.6
+Stable tag:        1.0.0-beta.7
+Version:           1.0.0-beta.7
 License:           GNU General Public License v3
 License URI:       http://www.gnu.org/licenses/gpl-3.0.html
 Tags:              lets encrypt, ssl, certificates, https, free ssl
@@ -95,6 +95,11 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 3. Generating a certificate with Let's Encrypt
 
 == Changelog ==
+
+= 1.0.0-beta.7 =
+* Added: New filter `wpenc_addon_domains` allows filtering the domains to generate the certificate for
+* Enhanced: If an account has already been registered, the plugin will now fetch the details instead of failing
+* Enhanced: Let's Encrypt API errors are now being printed out for more transparent errors
 
 = 1.0.0-beta.6 =
 * Fixed: `cURL error 3: malformed` does not happen anymore on WordPress 4.6
