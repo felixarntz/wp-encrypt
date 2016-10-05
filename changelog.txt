@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 1.0.0 =
+* Fixed: Plugin activation notice automatically hides after accessing the admin screen for the first time
+
 = 1.0.0-beta.7 =
 * Added: New filter `wpenc_addon_domains` allows filtering the domains to generate the certificate for
 * Enhanced: If an account has already been registered, the plugin will now fetch the details instead of failing

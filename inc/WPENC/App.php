@@ -84,8 +84,12 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 
 				$settings_api = new NetworkSettingsAPI();
 				$settings_api->run();
+
+				add_action( 'load-' . self::get_admin_page_hook( 'network' ), array( $this, 'hide_activation_notice' ) );
 			} else {
 				add_filter( 'map_meta_cap', array( $this, 'map_meta_cap_non_multisite' ), 10, 4 );
+
+				add_action( 'load-' . self::get_admin_page_hook( 'site' ), array( $this, 'hide_activation_notice' ) );
 			}
 
 			$this->admin = new Admin( $context );
@@ -121,6 +125,24 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 				$caps = array( 'manage_options' );
 			}
 			return $caps;
+		}
+
+		/**
+		 * Hides the plugin activation notice permanently.
+		 *
+		 * This method is invoked when the admin screen is accessed to hide the message upon first visit.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 */
+		public function hide_activation_notice() {
+			$opt_mode = is_network_admin() ? 'site_option' : 'option';
+
+			$plugins = call_user_func( 'get_' . $opt_mode, 'lalwpplugin_activated_plugins', array() );
+			if ( isset( $plugins['wp-encrypt'] ) && 'no-message' !== $plugins['wp-encrypt'] ) {
+				$plugins['wp-encrypt'] = 'no-message';
+				call_user_func( 'update_' . $opt_mode, 'lalwpplugin_activated_plugins', $plugins );
+			}
 		}
 
 		/**
@@ -215,6 +237,34 @@ if ( ! class_exists( 'WPENC\App' ) ) {
 			 * @param string $action  The action to perform or an empty string.
 			 */
 			return apply_filters( 'wpenc_admin_action_url', $url, $context, $action );
+		}
+
+		/**
+		 * Returns the page hook for the admin screen.
+		 *
+		 * @since 1.0.0
+		 * @access public
+		 * @static
+		 *
+		 * @param string $context Context for the page hook. Either 'site' or 'network'.
+		 * @return string Page hook for the admin screen.
+		 */
+		public static function get_admin_page_hook( $context ) {
+			$hook = 'settings_page_wp_encrypt';
+
+			if ( 'network' !== $context ) {
+				$context = 'site';
+			}
+
+			/**
+			 * Filters the page hook for the admin screen.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param string $hook    Page hook for the admin screen.
+			 * @param string $context Context for the page hook. Either 'site' or 'network'.
+			 */
+			return apply_filters( 'wpenc_admin_page_hook', $hook, $context );
 		}
 
 		/**
