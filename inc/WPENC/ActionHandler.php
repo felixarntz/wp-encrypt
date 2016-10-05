@@ -188,6 +188,19 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				Util::schedule_autogenerate_event( current_time( 'timestamp' ), true );
 			}
 
+			/**
+			 * Fires after the SSL certificate has been generated.
+			 *
+			 * The hook is invoked after both initial and subsequent certificate generation processes.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param array  $response      Response from the certificate generation call.
+			 * @param string $domain        Primary domain of the generated certificate.
+			 * @param array  $addon_domains Additional domains of the generated certificate.
+			 */
+			do_action( 'wpenc_certificate_generated', $response, $domain, $addon_domains );
+
 			return sprintf( __( 'Certificate generated for %s.', 'wp-encrypt' ), implode( ', ', $response['domains'] ) );
 		}
 

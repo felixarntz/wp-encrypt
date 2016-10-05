@@ -2,6 +2,7 @@
 
 = 1.0.0 =
 * Added: New action `wpenc_account_registered` is triggered after successful account registration with Let's Encrypt
+* Added: New action `wpenc_certificate_generated` is triggered after successful SSL certificate generation
 * Fixed: Plugin activation notice automatically hides after accessing the admin screen for the first time
 
 = 1.0.0-beta.7 =
