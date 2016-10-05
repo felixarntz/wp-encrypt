@@ -116,6 +116,15 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 
 			Util::set_registration_info( 'account', $response );
 
+			/**
+			 * Fires after the account with Let's Encrypt has been registered.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param array $response Response from the registration call.
+			 */
+			do_action( 'wpenc_account_registered', $response );
+
 			return __( 'Account registered.', 'wp-encrypt' );
 		}
 
