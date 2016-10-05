@@ -153,10 +153,8 @@ if ( ! class_exists( 'WPENC\ActionHandler' ) ) {
 				return new WP_Error( 'invalid_filesystem_credentials', __( 'Invalid or missing filesystem credentials.', 'wp-encrypt' ), 'error' );
 			}
 
-			$global = Util::get_option( 'include_all_networks' );
-
 			$domain = $network_wide ? Util::get_network_domain() : Util::get_site_domain();
-			$addon_domains = $network_wide ? Util::get_network_addon_domains( null, $global ) : array();
+			$addon_domains = $network_wide ? Util::get_network_addon_domains( null, Util::get_option( 'include_all_networks' ) ) : array();
 
 			/**
 			 * Filters the addon domains to create the certificate for.
