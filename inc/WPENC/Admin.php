@@ -663,7 +663,7 @@ SSLCertificateChainFile ' . $certificate_dirs['chain'] . '
 	listen   443;
 
 	ssl on;
-	ssl_certificate ' . $certificate_dirs['fullchain'] . '
+	ssl_certificate ' . $certificate_dirs['fullchain'] . ';
 	ssl_certificate_key ' . $certificate_dirs['key'] . ';
 
 	server_name ' . $site_domain . ';
