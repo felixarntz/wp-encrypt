@@ -98,7 +98,11 @@ if ( ! class_exists( 'WPENC\Core\Certificate' ) ) {
 		 * @param string $domain The root domain of this certificate.
 		 */
 		private function __construct( $domain ) {
-			$this->domain = $domain;
+			if (strpos($domain, 'www.') !== false) {
+			   $this->domain = str_replace("www.", "", $domain);
+			} else {
+			   $this->domain = $domain;           
+			}
 			$this->path = Util::get_letsencrypt_certificates_dir_path() . '/' . $domain;
 		}
 
