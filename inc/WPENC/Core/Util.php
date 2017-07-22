@@ -297,10 +297,10 @@ if ( ! class_exists( 'WPENC\Core\Util' ) ) {
 
 			foreach ( $addon_domains as $addon_domain ) {
 				$all_domains[] = $addon_domain;
-				if ( 1 === substr_count( $addon_domain, '.' ) ) {
-					$all_domains[] = 'www.' . $addon_domain;
-				} elseif ( 2 === substr_count( $addon_domain, '.' ) && 'www.' === substr( $addon_domain, 0, 4 ) ) {
+				if('www.' === substr( $addon_domain, 0, 4 ) ) {
 					$all_domains[] = substr( $addon_domain, 4 );
+				} else {
+					$all_domains[] = 'www.' . $addon_domain;
 				}
 			}
 
