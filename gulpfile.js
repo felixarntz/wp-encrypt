@@ -28,13 +28,14 @@ var config = {
 	authorEmail: pkg.author.email,
 	description: pkg.description,
 	version: pkg.version,
-	license: pkg.license.name,
-	licenseURI: pkg.license.url,
+	license: 'GNU General Public License v3',
+	licenseURI: 'http://www.gnu.org/licenses/gpl-3.0.html',
 	tags: keywords.join( ', ' ),
 	contributors: [ 'flixos90' ].join( ', ' ),
 	donateLink: 'https://leaves-and-love.net/wordpress-plugins/',
 	minRequired: '4.2',
-	testedUpTo: '4.6',
+	testedUpTo: '4.9',
+	requiresPHP: '5.3',
 	translateURI: 'https://translate.wordpress.org/projects/wp-plugins/' + pkg.name,
 	network: true
 };
@@ -63,6 +64,7 @@ var readmeheader =	'Plugin Name:       ' + config.pluginName + '\n' +
 					( config.donateLink ? 'Donate link:       ' + config.donateLink + '\n' : '' ) +
 					'Requires at least: ' + config.minRequired + '\n' +
 					'Tested up to:      ' + config.testedUpTo + '\n' +
+					'Requires PHP:      ' + config.requiresPHP + '\n' +
 					'Stable tag:        ' + config.version + '\n' +
 					'Version:           ' + config.version + '\n' +
 					'License:           ' + config.license + '\n' +

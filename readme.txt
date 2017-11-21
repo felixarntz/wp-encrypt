@@ -7,9 +7,10 @@ Author URI:        https://leaves-and-love.net
 Contributors:      flixos90
 Donate link:       https://leaves-and-love.net/wordpress-plugins/
 Requires at least: 4.2
-Tested up to:      4.6
-Stable tag:        1.0.0-beta.7
-Version:           1.0.0-beta.7
+Tested up to:      4.9
+Requires PHP:      5.3
+Stable tag:        1.0.0-beta.8
+Version:           1.0.0-beta.8
 License:           GNU General Public License v3
 License URI:       http://www.gnu.org/licenses/gpl-3.0.html
 Tags:              lets encrypt, ssl, certificates, https, free ssl
@@ -95,6 +96,13 @@ You can also contribute to the plugin by translating it. Simply visit [translate
 3. Generating a certificate with Let's Encrypt
 
 == Changelog ==
+
+= 1.0.0-beta.8 =
+* Added: New action `wpenc_account_registered` is triggered after successful account registration with Let's Encrypt
+* Added: New action `wpenc_certificate_generated` is triggered after successful SSL certificate generation
+* Fixed: plugin now supports using the latest Let's Encrypt Subscriber Agreement from November 15th, 2017
+* Fixed: Plugin activation notice automatically hides after accessing the admin screen for the first time
+* Fixed: Domains containing more than a single dot without www (such as those ending in `.co.uk`) are now handled correctly
 
 = 1.0.0-beta.7 =
 * Added: New filter `wpenc_addon_domains` allows filtering the domains to generate the certificate for

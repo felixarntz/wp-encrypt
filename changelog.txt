@@ -1,9 +1,11 @@
 == Changelog ==
 
-= 1.0.0 =
+= 1.0.0-beta.8 =
 * Added: New action `wpenc_account_registered` is triggered after successful account registration with Let's Encrypt
 * Added: New action `wpenc_certificate_generated` is triggered after successful SSL certificate generation
+* Fixed: plugin now supports using the latest Let's Encrypt Subscriber Agreement from November 15th, 2017
 * Fixed: Plugin activation notice automatically hides after accessing the admin screen for the first time
+* Fixed: Domains containing more than a single dot without www (such as those ending in `.co.uk`) are now handled correctly
 
 = 1.0.0-beta.7 =
 * Added: New filter `wpenc_addon_domains` allows filtering the domains to generate the certificate for

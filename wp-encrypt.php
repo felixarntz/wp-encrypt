@@ -3,7 +3,7 @@
 Plugin Name: WP Encrypt
 Plugin URI:  https://wordpress.org/plugins/wp-encrypt/
 Description: Generate and manage SSL certificates for your WordPress sites for free with this Let's Encrypt client.
-Version:     1.0.0-beta.7
+Version:     1.0.0-beta.8
 Author:      Felix Arntz
 Author URI:  https://leaves-and-love.net
 License:     GNU General Public License v3
@@ -42,7 +42,7 @@ if ( version_compare( phpversion(), '5.3.0' ) >= 0 && ! class_exists( 'WPENC\App
 LaL_WP_Plugin_Loader::load_plugin( array(
 	'slug'					=> 'wp-encrypt',
 	'name'					=> 'WP Encrypt',
-	'version'				=> '1.0.0-beta.7',
+	'version'				=> '1.0.0-beta.8',
 	'main_file'				=> __FILE__,
 	'namespace'				=> 'WPENC',
 	'textdomain'			=> 'wp-encrypt',
