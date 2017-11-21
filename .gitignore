@@ -19,6 +19,7 @@ local.properties
 .buildpath
 nbproject/
 node_modules/*
+package-lock.json
 
 ############
 ## Vendor
