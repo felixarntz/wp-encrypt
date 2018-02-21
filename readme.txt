@@ -19,6 +19,10 @@ Generate and manage SSL certificates for your WordPress sites for free with this
 
 == Description ==
 
+> **No longer maintained:**
+> This plugin is no longer maintained. Unfortunately I don't have the capacities to keep up with this project as there are other WordPress-related projects & plugins that are higher priority to me. Furthermore I'd like to remind that this is an experimental plugin and requires quite a bit of technical knowledge, since setting up SSL certificates is unfortunately still not a trivial task. It also won't work on many setups that don't provide access to some of the areas required.
+> I want to thank all the users of this plugin. If you're interested in continuing maintenance for the project from here, please contact me.
+
 _WP Encrypt_ is an easy-to-use client for the new [Let's Encrypt](https://letsencrypt.org/) service which provides free SSL certificates for everyone. No reason to have an unprotected WordPress site any longer! [1]
 
 Using the plugin, you can quickly acquire a new certificate for your site. Once you have registered and received a certificate, you can switch your site to HTTPS. [2]

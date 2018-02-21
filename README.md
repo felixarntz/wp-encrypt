@@ -7,6 +7,8 @@
 WP Encrypt
 ==========
 
+**This plugin is no longer maintained.**
+
 Generate and manage SSL certificates for your WordPress sites (or networks) for free with this Let's Encrypt client.
 
 You can download the latest version from the [WordPress plugin repository](http://wordpress.org/plugins/wp-encrypt/). If you prefer to install it from Github, make sure to run `composer install` before using it in order to download the necessary dependencies.
